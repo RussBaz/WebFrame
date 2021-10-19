@@ -10,6 +10,7 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
+    <Content Include="Text.txt" />
   </ItemGroup>
 
   <ItemGroup>

@@ -13,7 +13,7 @@ type Helpers () =
         fun ( serv: HttpServices ) ->
             serv.Headers.Set "Content-Type" [ "text/html" ]
             FileResponse p
-    static member file ( path: string ) = fun _ -> task { return FileResponse path }
+    static member file ( path: string ) = fun _ -> FileResponse path
     static member file ( path: string, contentType: string ) =
         fun ( serv: HttpServices ) -> task {
             serv.Headers.Set "Content-Type" [ contentType ]

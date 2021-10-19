@@ -54,6 +54,7 @@ type HttpServices ( ctx: HttpContext ) =
     member this.ContentType
         with get () = this.Headers.Get "Content-Type" ""
         and set v = this.Headers.Set "Content-Type" [ v ]
+    member _.EnableBuffering () = ctx.Request.EnableBuffering ()
         
 type ServicedHandler = HttpServices -> HttpWorkload
 type TaskServicedHandler = HttpServices -> Task<HttpWorkload>
