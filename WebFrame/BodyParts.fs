@@ -48,6 +48,12 @@ type FormEncodedBody ( req: HttpRequest ) =
         name
         |> this.InnerOptional<'T>
         |> Option.defaultWith ( fun _ -> MissingRequiredFormFieldException name |> raise )
+        
+    member this.First<'T when 'T : equality> ( name: string ) =
+        name
+        |> this.Required<'T>
+        |> List.tryHead
+        |> Option.defaultWith ( fun _ -> MissingRequiredFormFieldException name |> raise )
             
     member this.All<'T when 'T : equality> ( name: string ) =
         name

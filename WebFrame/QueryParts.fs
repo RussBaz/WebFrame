@@ -23,6 +23,12 @@ type QueryParameters ( req: HttpRequest ) =
         name
         |> this.Optional<'T>
         |> Option.defaultWith ( fun _ -> MissingRequiredQueryParameterException name |> raise )
+        
+    member this.First<'T when 'T : equality> ( name: string ) =
+        name
+        |> this.Required<'T>
+        |> List.tryHead
+        |> Option.defaultWith ( fun _ -> MissingRequiredQueryParameterException name |> raise )
             
     member this.All<'T when 'T : equality> ( name: string ) =
         name

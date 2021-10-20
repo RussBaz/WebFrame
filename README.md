@@ -72,3 +72,47 @@ Please check the Samples folder for examples of most of available apis.
 * LocalServer - shows how to work with the static files. It sets up a server that will share the specified folder (first command line argument) on the local network.
 * TestServer - shows how you can access a virtual test server that can be used for testing. You can also check out the WebFrame.Test folder for more details on how to use it.
 * AdvancedServer - a kitchen sink of most other available apis and helpers from the simplest to the most complicated
+
+### Sample Code
+The following snippet shows some common scenarios and it is taken directly out of StandardServer project in the Samples folder. Please check it out.
+```F#
+open WebFrame
+open type WebFrame.Endpoints.Helpers
+
+[<EntryPoint>]
+let main argv =
+    let items = [ "todo1"; "todo2"; "todo3" ]
+    
+    let api = AppModule "/api"
+    
+    // Returning items
+    api.Get "/" <- fun serv ->
+        serv.EndResponse items
+        
+    // Adding items
+    // By sending an item Name as a string field in a form
+    api.Post "/" <- fun serv ->
+        // If a required property in user input is not found,
+        // then 400 error is issued automatically
+        let itemName = serv.Body.Form.First<string> "name"
+        
+        if items |> List.contains itemName then
+            serv.StatusCode <- 409
+            printfn $"Item {itemName} already exists"
+        else
+            serv.StatusCode <- 201    
+            printfn $"Adding a new item {itemName}"
+        
+        serv.EndResponse ()
+    
+    let app = App argv
+    
+    app.Get "/" <- page "Pages/Index.html"
+    app.Get "/About" <- page "Pages/About.html"
+    
+    app.Module "ToDoApi" <- api
+    
+    app.Run ()
+    
+    0 // exit code
+```
