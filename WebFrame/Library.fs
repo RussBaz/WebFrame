@@ -138,6 +138,13 @@ type App ( ?args: string [] ) =
         let host = host |> Option.defaultValue ( this.Build () )
         host.Run ()
         
+    member this.Run ( urls: string list ) =
+        this.Config.[ "urls" ] <- urls |> String.concat ";"
+        
+        let host = this.Build ()
+        
+        host.Run ()
+        
     member this.TestServer () =
         let host = this.GetHostBuilder true
         host.StartAsync ()
