@@ -19,3 +19,9 @@ type Helpers () =
             serv.Headers.Set "Content-Type" [ contentType ]
             return FileResponse path
         }
+        
+// Please ignore - left for future references
+type private RouteBuilder () =
+    member this.A = 9
+type EndpointConfig () =
+    member this.A = 0

@@ -86,6 +86,13 @@ type CORSDef =
     | PolicyCORS of string
     | NewPolicyCORS of ( CorsPolicyBuilder->unit )
     
+type FieldContent =
+    | ValueContent
+type FieldDef =
+    | RequiredField
+    | OptionalField
+    | DefaultField
+    
 type RouteParamDef = {
     Name: string
     ExpectedType: Type

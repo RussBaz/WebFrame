@@ -3,7 +3,6 @@ module WebFrame.SystemConfig
 open System
 open System.Collections.Generic
 
-open System.IO
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
@@ -13,14 +12,13 @@ open Microsoft.AspNetCore.TestHost
 
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
-open Microsoft.Extensions.FileProviders
 open Microsoft.Extensions.Hosting
 
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
 
-type ServiceSetup = IServiceCollection -> IServiceCollection
+type ServiceSetup = IWebHostEnvironment -> IConfiguration -> IServiceCollection -> IServiceCollection
 type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> IApplicationBuilder
 type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
     
@@ -73,7 +71,7 @@ type StaticFilesSetup () =
         else
             app
             
-    member this.ConfigureServices: ServiceSetup = fun services ->
+    member this.ConfigureServices: ServiceSetup = fun _ _ services ->
         if this.AllowBrowsing then
             services.AddDirectoryBrowser ()
         else
@@ -180,8 +178,8 @@ type DynamicConfig () =
         endpoints
     let getServiceSetup ( data: List<ServiceSetup> ) : ServiceSetup =
         match data.Count with
-        | 0 -> id
-        | _ -> data |> Seq.reduce ( >> )
+        | 0 -> fun _ _ -> id
+        | _ -> data |> Seq.reduce ( fun a b -> fun env conf app -> a env conf app |> b env conf )
     let getAppSetup ( data: List<AppSetup> ) : AppSetup =
         match data.Count with
         | 0 -> fun _ _ -> id
@@ -191,20 +189,24 @@ type DynamicConfig () =
         | 0 -> id
         | _ -> data |> Seq.reduce ( >> )
     let configureServices ( webBuilder: IWebHostBuilder ) =
-        let c = fun ( services: IServiceCollection ) ->
-            // Slot for custom services
-            services |> getServiceSetup beforeServiceSetup |> ignore
+        let c = fun ( ctx: WebHostBuilderContext ) ( serv: IServiceCollection ) ->
+            let env = ctx.HostingEnvironment
+            let config = ctx.Configuration
             
-            services.AddSingleton<IRouteDescriptorService, SimpleRouteDescriptor> (
+            // Slot for custom services
+            ( env, config, serv ) |||> getServiceSetup beforeServiceSetup |> ignore
+            
+            // Add Route Collection Service
+            serv.AddSingleton<IRouteDescriptorService, SimpleRouteDescriptor> (
                 fun _ -> SimpleRouteDescriptor routes )
             |> ignore
             
-            staticFilesSetup.ConfigureServices services |> ignore
+            ( env, config, serv ) |||> staticFilesSetup.ConfigureServices |> ignore
             
             // Slot for custom services
-            services |> getServiceSetup afterServiceSetup |> ignore
+            ( env, config, serv ) |||> getServiceSetup afterServiceSetup |> ignore
         
-        webBuilder.ConfigureServices ( Action<IServiceCollection> c )
+        webBuilder.ConfigureServices ( Action<WebHostBuilderContext, IServiceCollection> c )
     let configureEndpoints ( app: IApplicationBuilder ) =
         let c = fun ( endpoints: IEndpointRouteBuilder ) ->
             for route in routes do
