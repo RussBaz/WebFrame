@@ -57,11 +57,11 @@ let ``Verifies that the test server is alive`` () = task {
     let! r = client.PostAsync ( "/data?q=123", requestContent )
     let! content = r.Content.ReadAsStringAsync ()
     
-    content |> shouldEqual """{"q":"123"}"""
+    content |> shouldEqual """{"Q":"123"}"""
     
     use requestContent = new FormUrlEncodedContent ( data )
     let! r = client.PostAsync ( "/data?n=123", requestContent )
     let! content = r.Content.ReadAsStringAsync ()
     
-    content |> shouldEqual """{"q":""}"""
+    content |> shouldEqual """{"Q":""}"""
 }

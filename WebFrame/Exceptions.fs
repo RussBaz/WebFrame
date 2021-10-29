@@ -27,7 +27,7 @@ type MissingRequiredFormException () =
     inherit InputException $"Could not retrieve a form body from the request."
     
 type MissingRequiredJsonException () =
-    inherit InputException $"Could not retrieve a json body from the request."
+    inherit InputException $"Could not retrieve an expected json body from the request."
 
 // Exceptions raised in response to incorrect app setup
 // Should result in app breaking on startup

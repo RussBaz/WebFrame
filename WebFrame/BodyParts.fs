@@ -1,8 +1,13 @@
 module WebFrame.BodyParts
 
-open System.Threading.Tasks
+open System
+open System.IO
+open System.Text
 open Microsoft.AspNetCore.Http
 
+open Microsoft.Extensions.Primitives
+open Microsoft.Net.Http.Headers
+open Newtonsoft.Json
 open WebFrame.Converters
 open WebFrame.Exceptions
 
@@ -71,26 +76,64 @@ type FormEncodedBody ( req: HttpRequest ) =
     member val IsPresent = req.HasFormContentType
     
 type JsonEncodedBody ( req: HttpRequest ) =
-    member _.Required<'T> () =
-        if req.HasJsonContentType () then
-            req.ReadFromJsonAsync<'T> ()
-        else
-            raise ( MissingRequiredJsonException () )
+    let mutable unknownEncoding = false
+    
+    let jsonCharset =
+        match MediaTypeHeaderValue.TryParse ( StringSegment req.ContentType ) with
+        | true, v ->
+            if v.MediaType.Equals ( "application/json", StringComparison.OrdinalIgnoreCase ) then
+                Some v.Charset
+            elif v.Suffix.Equals ( "json", StringComparison.OrdinalIgnoreCase ) then
+                Some v.Charset
+            else
+                None
+        | _ ->
+            None
             
-    member _.Optional<'T> () =
-        if req.HasJsonContentType () then
+    let jsonEncoding =
+        match jsonCharset with
+        | Some c ->
             try
-                task {
-                    let! j = req.ReadFromJsonAsync<'T> ()
-                    return Some j
-                }
-                |> ValueTask<'T option>
+                if c.Equals ( "utf-8", StringComparison.OrdinalIgnoreCase ) then
+                    Encoding.UTF8 |> Some
+                elif c.HasValue then
+                    Encoding.GetEncoding c.Value |> Some
+                else
+                    None
             with
-            | :? MissingRequiredJsonException -> ValueTask.FromResult None
-        else
-            ValueTask.FromResult None
+            | _ ->
+                unknownEncoding <- true
+                None
+        | None -> None
+        
+    let notJsonContentType = jsonCharset.IsNone || unknownEncoding
+            
+    member private _.ReadJson<'T> () = task {
+        if notJsonContentType then raise ( MissingRequiredJsonException () )
+        
+        let en = jsonEncoding |> Option.defaultValue Encoding.UTF8
+        
+        use br = new StreamReader ( req.Body, en )
+                
+        let! body = br.ReadToEndAsync ()
+        
+        try
+            return JsonConvert.DeserializeObject<'T> body
+        with
+        | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
+    }
+    
+    member this.Required<'T> () = this.ReadJson<'T> ()
+            
+    member this.Optional<'T> () = task {
+        try
+            let! r = this.ReadJson<'T> ()
+            return Some r
+        with
+        | :? MissingRequiredJsonException -> return None
+    }
     member this.Raw = if this.IsPresent then Some req.Body else None
-    member val IsPresent = req.HasJsonContentType ()
+    member val IsPresent = not notJsonContentType
     
 type Body ( req: HttpRequest ) =
     member val Form = FormEncodedBody req

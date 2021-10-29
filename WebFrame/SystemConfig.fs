@@ -14,6 +14,8 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 
+open Newtonsoft.Json
+
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
@@ -39,7 +41,7 @@ type InMemoryConfigSetup () =
     member this.SetupWith ( v: Dictionary<string, string> ) =
         for i in v do this.[ i.Key ] <- i.Value
         
-    member internal _.Builder = fun ( hostContext: HostBuilderContext ) ( config: IConfigurationBuilder ) ->
+    member internal _.Builder = fun ( hostContext: HostBuilderContext ) ( config: IConfigurationBuilder ) ->        
         config.AddInMemoryCollection configStorage |> ignore
 
 type StaticFilesSetup () =
@@ -103,7 +105,10 @@ type DynamicConfig () =
                             | EndResponse -> context.Response.CompleteAsync ()
                             | TextResponse t -> context.Response.WriteAsync t
                             | FileResponse f -> context.Response.SendFileAsync f
-                            | JsonResponse data -> context.Response.WriteAsJsonAsync data
+                            | JsonResponse data ->
+                                let output = JsonConvert.SerializeObject data
+                                context.Response.ContentType <- "application/json; charset=utf-8"
+                                context.Response.WriteAsync output
                     with
                     | :? InputException as exn ->
                         let t = exn.GetType ()
