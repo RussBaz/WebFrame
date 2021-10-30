@@ -15,7 +15,7 @@ open WebFrame.QueryParts
 open WebFrame.RouteParts
 open WebFrame.RouteTypes
     
-type HttpServices ( ctx: HttpContext ) =
+type RequestServices ( ctx: HttpContext ) =
     member val Context = ctx
     member val Path = RequestPathProperties ctx.Request    
     member val Route = RouteParameters ctx.Request
@@ -56,8 +56,8 @@ type HttpServices ( ctx: HttpContext ) =
         and set v = this.Headers.Set "Content-Type" [ v ]
     member _.EnableBuffering () = ctx.Request.EnableBuffering ()
         
-type ServicedHandler = HttpServices -> HttpWorkload
-type TaskServicedHandler = HttpServices -> Task<HttpWorkload>
+type ServicedHandler = RequestServices -> HttpWorkload
+type TaskServicedHandler = RequestServices -> Task<HttpWorkload>
 
 type HandlerSetup = ServicedHandler -> HttpHandler
 type TaskHandlerSetup = TaskServicedHandler -> TaskHttpHandler

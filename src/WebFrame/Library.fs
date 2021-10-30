@@ -19,7 +19,7 @@ type AppModule ( prefix: string ) =
         if routes.ContainsKey route then
             raise ( DuplicateRouteException ( route.ToString () ) )
             
-        let h: TaskHttpHandler = fun ctx -> ctx |> HttpServices |> handler
+        let h: TaskHttpHandler = fun ctx -> ctx |> RequestServices |> handler
             
         routes.[ route ] <- RouteDef.createWithHandler route h
         
@@ -30,7 +30,7 @@ type AppModule ( prefix: string ) =
         modules.[ name ] <- m
         
     let asTask ( h: ServicedHandler ) : TaskServicedHandler =
-        fun ( s: HttpServices ) -> task {
+        fun ( s: RequestServices ) -> task {
             return h s
         }
         

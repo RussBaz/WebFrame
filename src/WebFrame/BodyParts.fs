@@ -78,6 +78,8 @@ type FormEncodedBody ( req: HttpRequest ) =
 type JsonEncodedBody ( req: HttpRequest ) =
     let mutable unknownEncoding = false
     
+    let jsonSettings = JsonSerializerSettings ( MissingMemberHandling = MissingMemberHandling.Error )
+    
     let jsonCharset =
         match MediaTypeHeaderValue.TryParse ( StringSegment req.ContentType ) with
         | true, v ->
@@ -111,14 +113,14 @@ type JsonEncodedBody ( req: HttpRequest ) =
     member private _.ReadJson<'T> () = task {
         if notJsonContentType then raise ( MissingRequiredJsonException () )
         
-        let en = jsonEncoding |> Option.defaultValue Encoding.UTF8
+        let en = jsonEncoding |> Option.defaultValue Encoding.UTF8        
         
         use br = new StreamReader ( req.Body, en )
                 
         let! body = br.ReadToEndAsync ()
         
         try
-            return JsonConvert.DeserializeObject<'T> body
+            return JsonConvert.DeserializeObject<'T> ( body, jsonSettings )
         with
         | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
     }

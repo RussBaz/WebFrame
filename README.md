@@ -1,6 +1,33 @@
 # WebFrame
 A massive helper F# framework for making rapid prototyping with ASP.NET Core pleasant.
 
+### Fast Travel
+* [Introduction - A Story Time](#introduction---a-story-time)
+* [Guiding Principles](#guiding-principles)
+* [Setup](#setup)
+  * [For the first timers](#for-the-first-timers)
+  * [For an advanced audience](#for-an-advanced-audience)
+* [Examples](#examples)
+  * [Sample Code](#sample-code)
+* [Documentation](#documentation)
+  * [Main App](#main-app)
+  * [Request Handling](#request-handling)
+  * [Request Services](#request-services)
+  * [Route Parts](#route-parts)
+  * [Query Parts](#query-parts)
+  * [Header Parts](#header-parts)
+  * [Cookie Parts](#cookie-parts)
+  * [Config Parts](#config-parts)
+  * [Body Parts](#body-parts)
+    * [Form](#form)
+    * [Json](#json)
+  * [System Configuration](#system-configuration)
+  * [Request Helpers](#request-helpers)
+  * [Modules](#modules)
+  * [Testing](#testing)
+  * [Exceptions](#exceptions)
+* [Changelog](#changelog)
+
 ## Introduction - A Story Time
 Some long time ago I used to write web stuff using Python frameworks such as Django. More recently I got deeply into the F#. It satisfies a lot of my requirements. However, I was not satisfied with the current state of the F# web development. Every time I tried to write something quickly, I often had to choose between a heavily functional programming oriented frameworks or extremely tedious ASP.NET Core.
 
@@ -39,7 +66,9 @@ Here are the guiding principals for the development and vision of the project:
 Therefore, explicit is better than implicit but the speed of prototyping must always be considered. It is a number one priority.
 
 * And finally, a beautiful code (in my eyes) is a better code.
-## Setup for the first timers
+
+## Setup
+### For the first timers
 For those who just start with F#, I recommend starting with the following website ['F# for Fun and Profit: F# syntax in 60 seconds'](https://fsharpforfunandprofit.com/posts/fsharp-in-60-seconds/).
 
 Once you familiarise yourself with the syntax and install [.NET](https://dotnet.microsoft.com/download) runtime, you should check the `Samples` folder.
@@ -74,12 +103,12 @@ Once this is done, run the following command (in the same folder where your .fsp
 
 Note: you may need to restore the project before your IDE can correctly work with the project: `dotnet restore` and `dotnet build`
 
-Recommended editors by personal prefernce for F#:
+Recommended editors by personal preferences for F#:
 * VS Code with Ionide-fsharp extension
 * JetBrains Rider
 * Visual Studio
 
-## Setup for an advanced audience
+### For an advanced audience
 Create a new console or an empty asp core project with F#.
 
 If it is a console project, add Web framework reference.
@@ -98,6 +127,7 @@ Please check the Samples folder for examples of most of available apis.
 * Modules - shows how to modularise the app
 * LocalServer - shows how to work with the static files. It sets up a server that will share the specified folder (first command line argument) on the local network.
 * TestServer - shows how you can access a virtual test server that can be used for testing. You can also check out the WebFrame.Test folder for more details on how to use it.
+* StandardServer - shows common scenarios 
 * AdvancedServer - a kitchen sink of most other available apis and helpers from the simplest to the most complicated
 
 ### Sample Code
@@ -143,3 +173,22 @@ let main argv =
     
     0 // exit code
 ```
+## Documentation
+### Main App
+### Request Handling
+### Request Services
+### Route Parts
+### Query Parts
+### Header Parts
+### Cookie Parts
+### Config Parts
+### Body Parts
+#### Form
+#### Json
+### System Configuration
+### Request Helpers
+### Modules
+### Testing
+### Exceptions
+
+## Changelog
