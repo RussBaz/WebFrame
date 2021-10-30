@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "RussBaz",
+    "classifications": [
+        "Web",
+        "WebFrame",
+        "Minimal"
+    ],
+    "identity": "WebFrameTemplate.MinimalProject",
+    "name": "WebFrame Templates: Minimal Project",
+    "shortName": "webframe",
+    "tags": {
+        "language": "F#",
+        "type": "project"
+    },
+    "sourceName": "Minimal",
+    "preferNameDirectory": true
+}

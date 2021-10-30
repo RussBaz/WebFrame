@@ -44,13 +44,40 @@ For those who just start with F#, I recommend starting with the following websit
 
 Once you familiarise yourself with the syntax and install [.NET](https://dotnet.microsoft.com/download) runtime, you should check the `Samples` folder.
 
-Clone this repo and copy the Minimal project into a new folder in your project folder. You need to adjust a project reference in the project file (called Minimal.fsproj in the example) to point at the correct location of the WebFrame.fsproj file.
+Clone this repository and then install the minimal template:
 
-This manual adjusting step is currently required because I have not published this project to any package repository and I have not created any other templates.
+```
+dotnet new -i ./path/to/Templates/Minimal/
+```
+
+Create a new project just like you would normally do in a new directory of your choice:
+
+```
+dotnet new webframe
+```
+
+Before you can continue, you need to adjust a path to the cloned WebFrame project.
+
+Please find your new project file called `YourProjectName.fsproj` and adjust the `Include` property in the following line (for the newcomers - it is internally an xml file) to point to currently cloned `WebFrame.fsproj` project file:
+
+```xml
+<ItemGroup>
+    <ProjectReference Include="..\..\WebFrame\WebFrame.fsproj" />
+</ItemGroup>
+```
+
+This manual adjusting step is currently required because I have not published this project to any package repository and this template is too simple to do it automagically.
 
 Once this is done, run the following command (in the same folder where your .fsproj file is) to start the server:
 
 `dotnet run`
+
+Note: you may need to restore the project before your IDE can correctly work with the project: `dotnet restore` and `dotnet build`
+
+Recommended editors by personal prefernce for F#:
+* VS Code with Ionide-fsharp extension
+* JetBrains Rider
+* Visual Studio
 
 ## Setup for an advanced audience
 Create a new console or an empty asp core project with F#.

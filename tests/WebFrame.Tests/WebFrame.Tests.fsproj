@@ -22,11 +22,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Update="FSharp.Core" Version="6.0.0" />
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WebFrame\WebFrame.fsproj" />
+    <ProjectReference Include="..\..\src\WebFrame\WebFrame.fsproj" />
   </ItemGroup>
 
 </Project>

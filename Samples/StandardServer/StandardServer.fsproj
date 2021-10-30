@@ -11,16 +11,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\WebFrame\WebFrame.fsproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.0" />
+    <ProjectReference Include="..\..\src\WebFrame\WebFrame.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Pages\About.html" />
     <Content Include="Pages\Index.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
 
 </Project>
