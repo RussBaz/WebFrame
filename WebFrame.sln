@@ -5,17 +5,17 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{10075972-9166-4D47-87B1-47DC4567CE57}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Minimal", "Samples\Minimal\Minimal.fsproj", "{3D7380B8-3BD7-4D58-97AD-731D1463CE54}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Minimal", "samples\Minimal\Minimal.fsproj", "{3D7380B8-3BD7-4D58-97AD-731D1463CE54}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LocalServer", "Samples\LocalServer\LocalServer.fsproj", "{4E0C0625-E5E8-4EE7-A7F0-8C4D79DC191C}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LocalServer", "samples\LocalServer\LocalServer.fsproj", "{4E0C0625-E5E8-4EE7-A7F0-8C4D79DC191C}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Modules", "Samples\Modules\Modules.fsproj", "{8D830FBE-7B0C-44C4-8B27-914E8F051D2C}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Modules", "samples\Modules\Modules.fsproj", "{8D830FBE-7B0C-44C4-8B27-914E8F051D2C}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestServer", "Samples\TestServer\TestServer.fsproj", "{AB0DE2F3-CB50-4F7C-9EA3-292109341F12}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestServer", "samples\TestServer\TestServer.fsproj", "{AB0DE2F3-CB50-4F7C-9EA3-292109341F12}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "AdvancedServer", "Samples\AdvancedServer\AdvancedServer.fsproj", "{D2304055-B211-4815-9267-A5B193440530}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "AdvancedServer", "samples\AdvancedServer\AdvancedServer.fsproj", "{D2304055-B211-4815-9267-A5B193440530}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StandardServer", "Samples\StandardServer\StandardServer.fsproj", "{B5D8BCB2-8231-44BD-846C-F53DEBE88DBC}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StandardServer", "samples\StandardServer\StandardServer.fsproj", "{B5D8BCB2-8231-44BD-846C-F53DEBE88DBC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{829596DB-A8F4-4DF8-89C8-A372C9B7E88D}"
 	ProjectSection(SolutionItems) = preProject

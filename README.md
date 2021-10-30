@@ -47,7 +47,7 @@ Once you familiarise yourself with the syntax and install [.NET](https://dotnet.
 Clone this repository and then install the minimal template:
 
 ```
-dotnet new -i ./path/to/Templates/Minimal/
+dotnet new -i ./path/to/templates/Minimal/
 ```
 
 Create a new project just like you would normally do in a new directory of your choice:
@@ -62,7 +62,7 @@ Please find your new project file called `YourProjectName.fsproj` and adjust the
 
 ```xml
 <ItemGroup>
-    <ProjectReference Include="..\..\WebFrame\WebFrame.fsproj" />
+    <ProjectReference Include="..\..\WebFrame\src\WebFrame.fsproj" />
 </ItemGroup>
 ```
 
