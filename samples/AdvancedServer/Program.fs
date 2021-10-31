@@ -167,7 +167,7 @@ module Program =
             // It must be present and of the specified type
             // You can use Optional instead if you want to do something special
             // when the body is not an anticipated json  
-            let! body = serv.Body.Json.Required<SampleRequestBody> ()
+            let! body = serv.Body.Json.Exact<SampleRequestBody> ()
             
             // A shortcut for accessing Content-Type header
             let contentType = serv.ContentType
@@ -179,7 +179,7 @@ module Program =
         app.PostTask "/new-item" <- fun serv -> task {
             // The type can be inlined and anonymous
             // Furthermore, it will discard additional fields if present
-            let! body = serv.Body.Json.Required<{| Name: string |}> ()
+            let! body = serv.Body.Json.Exact<{| Name: string |}> ()
              
             return JsonResponse {| Body = body |}
         }

@@ -3,11 +3,15 @@ module WebFrame.BodyParts
 open System
 open System.IO
 open System.Text
-open Microsoft.AspNetCore.Http
+open System.Threading.Tasks
 
-open Microsoft.Extensions.Primitives
+open Microsoft.AspNetCore.Http
 open Microsoft.Net.Http.Headers
+open Microsoft.Extensions.Primitives
+
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
+
 open WebFrame.Converters
 open WebFrame.Exceptions
 
@@ -77,8 +81,10 @@ type FormEncodedBody ( req: HttpRequest ) =
     
 type JsonEncodedBody ( req: HttpRequest ) =
     let mutable unknownEncoding = false
+    let mutable json: JObject option = None
     
     let jsonSettings = JsonSerializerSettings ( MissingMemberHandling = MissingMemberHandling.Error )
+    let jsonSerializer = JsonSerializer.CreateDefault jsonSettings
     
     let jsonCharset =
         match MediaTypeHeaderValue.TryParse ( StringSegment req.ContentType ) with
@@ -109,33 +115,104 @@ type JsonEncodedBody ( req: HttpRequest ) =
         | None -> None
         
     let notJsonContentType = jsonCharset.IsNone || unknownEncoding
-            
-    member private _.ReadJson<'T> () = task {
+    
+    member private _.GetJson () = task {
         if notJsonContentType then raise ( MissingRequiredJsonException () )
         
-        let en = jsonEncoding |> Option.defaultValue Encoding.UTF8        
+        match json with
+        | Some v -> return v
+        | None ->
+            let en = jsonEncoding |> Option.defaultValue Encoding.UTF8        
         
-        use br = new StreamReader ( req.Body, en )
+            use br = new StreamReader ( req.Body, en )
+                    
+            let! body = br.ReadToEndAsync ()
+            
+            try
+                let v = JObject.Parse body
                 
-        let! body = br.ReadToEndAsync ()
+                json <- Some v
+                
+                return v
+            with
+            | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
+    }
+
+    member private this.ReadJson<'T> () = task {
+        let! j = this.GetJson ()
+        
+        use tr = new JTokenReader ( j )
         
         try
-            return JsonConvert.DeserializeObject<'T> ( body, jsonSettings )
+            return jsonSerializer.Deserialize<'T> tr
         with
         | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
     }
     
-    member this.Required<'T> () = this.ReadJson<'T> ()
+    member private this.GetField<'T> ( jsonPath: string ) = task {
+        let! j = this.GetJson ()
+        let token = j.SelectToken jsonPath
+        
+        return token.ToObject<'T> ()
+    }
+    
+    member private this.GetFields<'T> ( jsonPath: string ) = task {
+        let! j = this.GetJson ()
+        
+        return
+            jsonPath
+            |> j.SelectTokens
+            |> Seq.map ( fun i -> i.ToObject<'T> () )
+            |> List.ofSeq
+    }
+    
+    member this.Exact<'T> () : Task<'T> = this.ReadJson<'T> ()
+    
+    member this.Get<'T> ( path: string ) ( d: 'T ) : Task<'T> = task {
+        let! v = this.Optional<'T> path
+        return v |> Option.defaultValue d
+    }
+    
+    member this.Required<'T> ( path: string ) : Task<'T> = task {
+        return! this.GetField<'T> path
+    }
             
-    member this.Optional<'T> () = task {
+    member this.Optional<'T> ( path: string ) : Task<'T option> = task {
         try
-            let! r = this.ReadJson<'T> ()
+            let! r = this.Required<'T> path
             return Some r
         with
         | :? MissingRequiredJsonException -> return None
     }
-    member this.Raw = if this.IsPresent then Some req.Body else None
-    member val IsPresent = not notJsonContentType
+    
+    member this.List<'T> ( path: string ) : Task<'T list> = this.GetFields path
+    
+    member this.Raw with get () : Task<JObject> = task {
+        let! r = this.RawOptional
+        
+        return r |> Option.defaultWith ( fun _ -> raise ( MissingRequiredJsonException () ) )
+    }
+    
+    member this.RawOptional with get () : Task<JObject option> = task {
+        let! isPresent = this.IsPresent ()
+        
+        if isPresent then
+            return Some json.Value
+        else
+            return None
+    }
+    
+    member this.IsPresent () = task {
+        if this.IsJsonContentType then
+            try
+                let! _ = this.GetJson ()
+                return true
+            with
+            | :? MissingRequiredJsonException -> return false
+        else
+            return false
+    }
+    member val IsJsonContentType = not notJsonContentType
     
 type Body ( req: HttpRequest ) =
     member val Form = FormEncodedBody req
