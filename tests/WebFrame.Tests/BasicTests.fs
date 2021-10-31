@@ -1,8 +1,9 @@
 module WebFrame.Tests.BasicTests
 
+open System
 open System.Net
-
 open System.Net.Http
+
 open NUnit.Framework
 open FsUnitTyped
 
@@ -11,7 +12,13 @@ open Microsoft.AspNetCore.TestHost
 open WebFrame
 open WebFrame.Http
 open WebFrame.RouteTypes
-open type WebFrame.Endpoints.Helpers
+open type Endpoints.Helpers
+
+type MyRecord = {
+    Id: Guid
+    Name: string
+    Position: int
+}
 
 let app = App ()
 

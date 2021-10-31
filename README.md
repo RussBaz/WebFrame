@@ -175,7 +175,104 @@ let main argv =
 ```
 ## Documentation
 ### Main App
+How to create, build and run a WebFrame app
+```F#
+open WebFrame
+
+[<EntryPoint>]
+let main argv =
+    // All it takes to create an app
+    let app = App ()
+
+    // If you want to pass command line arguments
+    // to the underlying ASP.NET Core server
+    let app = App argv
+ 
+    // To run an app (blocking mode)
+    // If the app is not yet built
+    // it will run the build step automatically
+    // However, it will not rebuild the app if it is already built
+    app.Run ()
+    
+    // You can also specify directly the connection urls in this step
+    // This will override all existing 'urls' configurations
+    // Furthermore, it will force the app to be rebuilt even if it is already built
+    app.Run [ "http://localhost:5000" ]
+    
+    // To Build an app manually before running it
+    // One can run this optional command
+    // Once the app is built, further changes to configs or endpoints
+    // will not take place untill the app is rebuilt
+    app.Build ()
+```
 ### Request Handling
+How to process icoming requests
+```F#
+// There are two types of request handlers
+// Each returning the HttpWorkload in some form
+// Internally, all the handlers are converted into TaskHttpHandler
+type HttpWorkload =
+    | EndResponse            // ends the response processing
+    | TextResponse of string // the resonse body as string
+    | FileResponse of string // filename of the file to be returned
+    | JsonResponse of obj    // an obj to be serialised and returned as json
+
+type HttpHandler = HttpContext -> HttpWorkload
+type TaskHttpHandler = HttpContext -> Task<HttpWorkload>
+
+// Use EndResponse when you plan to construct the response manually
+// And do not want any further processing to be applied after that
+// If no response is provided at all, a default empty bodied 200 response is returned
+// If you return a workload that contradicts your manual changes to the response
+// Then normally a ServerException would be thrown
+
+// Pass a function to an indexed property named after the expected Http Method
+// The provided indexer is a string that will be converted into ASP.Net Core RoutePattern
+// MS Docs Reference on Route Templating Syntax
+// https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-5.0#route-template-reference 
+app.Get "/" <- fun serv -> serv.EndResponse ()
+app.Post "/" <- fun serv -> serv.EndResponse ()
+app.Put "/" <- fun serv -> serv.EndResponse ()
+app.Patch "/" <- fun serv -> serv.EndResponse ()
+app.Delete "/" <- fun serv -> serv.EndResponse ()
+app.Head "/" <- fun serv -> serv.EndResponse ()
+app.Options "/" <- fun serv -> serv.EndResponse ()
+app.Connect "/" <- fun serv -> serv.EndResponse ()
+app.Trace "/" <- fun serv -> serv.EndResponse ()
+
+// If you need to perform an ayncronous computation
+app.GetTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.PostTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.PutTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.PatchTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.DeleteTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.HeadTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.OptionsTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.ConnectTask "/" <- fun serv -> task { return serv.EndResponse () }
+app.TraceTask "/" <- fun serv -> task { return serv.EndResponse () }
+
+// You do not need to use EndResponse convinience method of the RequestService parameter
+// Your handler can return an HttpWorkload directly
+open WebFrame.Http
+
+app.Get "/home" <- fun _ -> TextResponse "Hello World"
+app.PostTask "/home" <- fun _ -> task { return TextResponse "Hello World" }
+
+// Moreover, you do not have to use convinience indexed properties named after their methods
+// You can provide a method directly
+// You must provide a TaskHttpHandler in this case
+open WebFrame.RouteTypes
+
+app.[ Post "/api" ] <- fun serv -> task { return serv.EndResponse () }
+// Each method named indexed property will internally use this property
+// Therefore, if the method and the endpoint combination repeats,
+// It will immediately raise a ServerException
+// However, in some corner cases the duplication may slip through the checks
+// In that case the ASP.Net Core will raise its own exception
+// and there is no guarantee on what exception and when it will be raised
+// It depends on the whims of ASP.Net Core developers
+```
+If an `InputException` is raised during the request handling then a `400` response with the exception message would returned. In case of `ServerException`, a `500` response is issued instead.
 ### Request Services
 ### Route Parts
 ### Query Parts
