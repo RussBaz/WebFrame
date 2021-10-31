@@ -217,15 +217,21 @@ type HttpWorkload =
     | FileResponse of string // filename of the file to be returned
     | JsonResponse of obj    // an obj to be serialised and returned as json
 
+// Internal handlers
 type HttpHandler = HttpContext -> HttpWorkload
 type TaskHttpHandler = HttpContext -> Task<HttpWorkload>
+
+// User provided handlers, that are converted to the internal representation
+type ServicedHandler = RequestServices -> HttpWorkload
+type TaskServicedHandler = RequestServices -> Task<HttpWorkload>
 
 // Use EndResponse when you plan to construct the response manually
 // And do not want any further processing to be applied after that
 // If no response is provided at all, a default empty bodied 200 response is returned
-// If you return a workload that contradicts your manual changes to the response
+// If you return a workload that contradicts your manual changes to the response object
 // Then normally a ServerException would be thrown
 
+// In order to define a request handler,
 // Pass a function to an indexed property named after the expected Http Method
 // The provided indexer is a string that will be converted into ASP.Net Core RoutePattern
 // MS Docs Reference on Route Templating Syntax
@@ -260,10 +266,16 @@ app.PostTask "/home" <- fun _ -> task { return TextResponse "Hello World" }
 
 // Moreover, you do not have to use convinience indexed properties named after their methods
 // You can provide a method directly
-// You must provide a TaskHttpHandler in this case
+// You must provide a TaskServicedHandler in this case
 open WebFrame.RouteTypes
 
 app.[ Post "/api" ] <- fun serv -> task { return serv.EndResponse () }
+
+// Or even like this
+open WebFrame.Http
+
+app.[ Get "/" ] <- fun _ -> task { return EndResponse }
+
 // Each method named indexed property will internally use this property
 // Therefore, if the method and the endpoint combination repeats,
 // It will immediately raise a ServerException
