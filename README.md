@@ -157,8 +157,8 @@ let main argv =
             serv.StatusCode <- 409
             printfn $"Item {itemName} already exists"
         else
-            serv.StatusCode <- 201    
-            printfn $"Adding a new item {itemName}"
+            serv.StatusCode <- 201
+            printfn $"Faking a successful addition of a new item {itemName}"
         
         serv.EndResponse ()
     

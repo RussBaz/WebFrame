@@ -11,6 +11,7 @@ open Microsoft.Extensions.Primitives
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
+open Newtonsoft.Json.Serialization
 
 open WebFrame.Converters
 open WebFrame.Exceptions
@@ -79,11 +80,33 @@ type FormEncodedBody ( req: HttpRequest ) =
     member _.Raw with get () = try getForm () |> Some with | :? MissingRequiredFormException -> None
     member val IsPresent = req.HasFormContentType
     
+type RequireAllPropertiesContractResolver() =
+    inherit DefaultContractResolver()
+
+    // Code examples are taken from:
+    // https://stackoverflow.com/questions/29655502/json-net-require-all-properties-on-deserialization/29660550
+    
+//    override this.CreateObjectContract ( objectType: Type ) =
+//        let contract = base.CreateObjectContract objectType
+//        contract.ItemRequired <- Nullable<Required> Required.Always
+//        contract
+        
+    override this.CreateProperty ( memberInfo, serialization ) =
+        let prop = base.CreateProperty ( memberInfo, serialization )
+        let isRequired =
+            not prop.PropertyType.IsGenericType || prop.PropertyType.GetGenericTypeDefinition () <> typedefof<Option<_>>
+        if isRequired then prop.Required <- Required.Always
+        prop
+
 type JsonEncodedBody ( req: HttpRequest ) =
     let mutable unknownEncoding = false
     let mutable json: JObject option = None
     
-    let jsonSettings = JsonSerializerSettings ( MissingMemberHandling = MissingMemberHandling.Error )
+    let jsonSettings =
+        JsonSerializerSettings (
+            NullValueHandling = NullValueHandling.Ignore,
+            MissingMemberHandling = MissingMemberHandling.Error,
+            ContractResolver = RequireAllPropertiesContractResolver () )
     let jsonSerializer = JsonSerializer.CreateDefault jsonSettings
     
     let jsonCharset =
@@ -152,7 +175,6 @@ type JsonEncodedBody ( req: HttpRequest ) =
     member private this.GetField<'T> ( jsonPath: string ) = task {
         let! j = this.GetJson ()
         let token = j.SelectToken jsonPath
-        
         return token.ToObject<'T> ()
     }
     
