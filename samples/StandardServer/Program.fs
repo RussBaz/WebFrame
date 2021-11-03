@@ -16,7 +16,7 @@ let main argv =
     api.Post "/" <- fun serv ->
         // If a required property in user input is not found,
         // then 400 error is issued automatically
-        let itemName = serv.Body.Form.First<string> "name"
+        let itemName = serv.Body.Form.Required<string> "name"
         
         if items |> List.contains itemName then
             serv.StatusCode <- 409

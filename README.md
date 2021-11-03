@@ -68,10 +68,11 @@ Therefore, explicit is better than implicit but the speed of prototyping must al
 * And finally, a beautiful code (in my eyes) is a better code.
 
 ## Setup
+Before you begin, make sure that [.NET](https://dotnet.microsoft.com/download) 5.0+ is installed and reachable from your terminal (i.e. it is present in the Path environment variable)
 ### For the first timers
 For those who just start with F#, I recommend starting with the following website ['F# for Fun and Profit: F# syntax in 60 seconds'](https://fsharpforfunandprofit.com/posts/fsharp-in-60-seconds/).
 
-Once you familiarise yourself with the syntax and install [.NET](https://dotnet.microsoft.com/download) runtime, you should check the `Samples` folder.
+Once you familiarise yourself with the syntax and deal with the .Net runtime, you should check the `Samples` folder.
 
 Clone this repository and then install the minimal template:
 
@@ -151,7 +152,7 @@ let main argv =
     api.Post "/" <- fun serv ->
         // If a required property in user input is not found,
         // then 400 error is issued automatically
-        let itemName = serv.Body.Form.First<string> "name"
+        let itemName = serv.Body.Form.Required<string> "name"
         
         if items |> List.contains itemName then
             serv.StatusCode <- 409
@@ -163,6 +164,14 @@ let main argv =
         serv.EndResponse ()
     
     let app = App argv
+    
+    // Serving Static Files is disabled by default
+    app.Services.StaticFiles.Enabled <- true
+    
+    // Optionally adding a prefix to all static files
+    app.Services.StaticFiles.Route <- "/static"
+    
+    // Please check the LocalServer sample for more information on the static files
     
     app.Get "/" <- page "Pages/Index.html"
     app.Get "/About" <- page "Pages/About.html"

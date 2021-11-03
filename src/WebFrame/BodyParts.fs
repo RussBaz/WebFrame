@@ -16,8 +16,25 @@ open Newtonsoft.Json.Serialization
 open WebFrame.Converters
 open WebFrame.Exceptions
 
+
+type FormFiles ( files: IFormFileCollection ) =
+    member _.All () = files |> Seq.toList
+    member _.Required ( fileName: string ) =
+        match files.GetFile fileName with
+        | null -> raise ( MissingRequiredFormFileException fileName )
+        | f -> f
+    member this.Optional ( fileName: string ) =
+        try
+            this.Required fileName |> Some
+        with
+        | :? MissingRequiredFormFileException -> None
+    
+    member val Count = files.Count
+
 type FormEncodedBody ( req: HttpRequest ) =
-    let mutable form = None
+    let mutable form: IFormCollection option = None
+    let mutable files: FormFiles option = None
+    
     let getForm () =
         match form with
         | Some v -> v
@@ -26,58 +43,58 @@ type FormEncodedBody ( req: HttpRequest ) =
                 form <- Some req.Form
             else
                 raise ( MissingRequiredFormException () )
-                
-            form |> Option.get
-    member private _.InnerAsString ( name: string ) =
+            
+            req.Form
+            
+    let getFiles () =
+        match files with
+        | Some v -> v
+        | None ->
+            let f = getForm ()
+            let f = FormFiles f.Files
+            
+            files <- Some f
+            
+            f
+            
+    let getStringList ( name: string ) =
         let form = getForm ()
+        
         match form.TryGetValue name with
         | true, v -> Some v
         | _ -> None
         |> Option.map ( fun i -> i.ToArray () |> List.ofArray )
         
-    member this.AsString ( name: string ) =
-        try
-            name |> this.InnerAsString
-        with
-        | :? MissingRequiredFormException -> None
-        
-    member private this.InnerOptional<'T when 'T : equality> ( name: string ) =
+    member private this.TryHead<'T> ( name: string ) =
         name
-        |> this.InnerAsString
+        |> getStringList
+        |> Option.bind List.tryHead
+        |> Option.bind convertTo<'T>
+            
+    member this.List<'T when 'T : equality> ( name: string ) =
+        name
+        |> getStringList
         |> Option.map ( List.map convertTo<'T> )
         |> Option.bind ( fun i -> if i |> List.contains None then None else Some i )
         |> Option.map ( List.map Option.get )
-        
-    member this.Optional<'T when 'T : equality> ( name: string ) : 'T list option =
-        try
-            name |> this.InnerOptional
-        with
-        | :? MissingRequiredFormException -> None
-        
-    member this.Required<'T when 'T : equality> ( name: string ) =
-        name
-        |> this.InnerOptional<'T>
-        |> Option.defaultWith ( fun _ -> MissingRequiredFormFieldException name |> raise )
-        
-    member this.First<'T when 'T : equality> ( name: string ) =
-        name
-        |> this.Required<'T>
-        |> List.tryHead
-        |> Option.defaultWith ( fun _ -> MissingRequiredFormFieldException name |> raise )
-            
-    member this.All<'T when 'T : equality> ( name: string ) =
-        name
-        |> this.Optional<'T>
         |> Option.defaultValue []
+        
+    member this.Optional<'T when 'T : equality> ( name: string ) =
+        name
+        |> this.TryHead<'T>
         
     member this.Get<'T when 'T : equality> ( name: string ) ( d: 'T ) =
         name
         |> this.Optional<'T>
-        |> Option.defaultValue []
-        |> List.tryHead
         |> Option.defaultValue d
         
+    member this.Required<'T when 'T : equality> ( name: string ) =
+        name
+        |> this.TryHead<'T>
+        |> Option.defaultWith ( fun _ -> raise ( MissingRequiredFormFieldException name ) )
+        
     member _.Raw with get () = try getForm () |> Some with | :? MissingRequiredFormException -> None
+    member _.Files with get () = try getFiles () |> Some with | :? MissingRequiredFormException -> None
     member val IsPresent = req.HasFormContentType
     
 type RequireAllPropertiesContractResolver() =
@@ -85,11 +102,6 @@ type RequireAllPropertiesContractResolver() =
 
     // Code examples are taken from:
     // https://stackoverflow.com/questions/29655502/json-net-require-all-properties-on-deserialization/29660550
-    
-//    override this.CreateObjectContract ( objectType: Type ) =
-//        let contract = base.CreateObjectContract objectType
-//        contract.ItemRequired <- Nullable<Required> Required.Always
-//        contract
         
     override this.CreateProperty ( memberInfo, serialization ) =
         let prop = base.CreateProperty ( memberInfo, serialization )
@@ -139,7 +151,7 @@ type JsonEncodedBody ( req: HttpRequest ) =
         
     let notJsonContentType = jsonCharset.IsNone || unknownEncoding
     
-    member private _.GetJson () = task {
+    let getJson () = task {
         if notJsonContentType then raise ( MissingRequiredJsonException () )
         
         match json with
@@ -161,8 +173,8 @@ type JsonEncodedBody ( req: HttpRequest ) =
             | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
     }
 
-    member private this.ReadJson<'T> () = task {
-        let! j = this.GetJson ()
+    member private _.ReadJson<'T> () = task {
+        let! j = getJson ()
         
         use tr = new JTokenReader ( j )
         
@@ -172,14 +184,14 @@ type JsonEncodedBody ( req: HttpRequest ) =
         | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
     }
     
-    member private this.GetField<'T> ( jsonPath: string ) = task {
-        let! j = this.GetJson ()
+    member private _.GetField<'T> ( jsonPath: string ) = task {
+        let! j = getJson ()
         let token = j.SelectToken jsonPath
         return token.ToObject<'T> ()
     }
     
-    member private this.GetFields<'T> ( jsonPath: string ) = task {
-        let! j = this.GetJson ()
+    member private _.GetFields<'T> ( jsonPath: string ) = task {
+        let! j = getJson ()
         
         return
             jsonPath
@@ -196,7 +208,10 @@ type JsonEncodedBody ( req: HttpRequest ) =
     }
     
     member this.Required<'T> ( path: string ) : Task<'T> = task {
-        return! this.GetField<'T> path
+        try
+            return! this.GetField<'T> path
+        with
+        | :? NullReferenceException -> return raise ( MissingRequiredJsonFieldException path )
     }
             
     member this.Optional<'T> ( path: string ) : Task<'T option> = task {
@@ -210,24 +225,18 @@ type JsonEncodedBody ( req: HttpRequest ) =
     member this.List<'T> ( path: string ) : Task<'T list> = this.GetFields path
     
     member this.Raw with get () : Task<JObject> = task {
-        let! r = this.RawOptional
-        
-        return r |> Option.defaultWith ( fun _ -> raise ( MissingRequiredJsonException () ) )
-    }
-    
-    member this.RawOptional with get () : Task<JObject option> = task {
         let! isPresent = this.IsPresent ()
         
         if isPresent then
-            return Some json.Value
+            return json.Value
         else
-            return None
+            return raise ( MissingRequiredJsonException () )
     }
-    
+        
     member this.IsPresent () = task {
         if this.IsJsonContentType then
             try
-                let! _ = this.GetJson ()
+                let! _ = getJson ()
                 return true
             with
             | :? MissingRequiredJsonException -> return false

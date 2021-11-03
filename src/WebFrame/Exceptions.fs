@@ -23,8 +23,14 @@ type MissingRequiredCookieException ( cookieName: string ) =
 type MissingRequiredFormFieldException ( fieldName: string ) =
     inherit InputException $"Could not retrieve a required form field named '%s{fieldName}' from the request."
     
+type MissingRequiredFormFileException ( fileName: string ) =
+    inherit InputException $"Could not retrieve a required form file named '%s{fileName}' from the request."
+    
 type MissingRequiredFormException () =
     inherit InputException $"Could not retrieve a form body from the request."
+    
+type MissingRequiredJsonFieldException ( fieldName: string ) =
+    inherit InputException $"Could not retrieve a required json field named '%s{fieldName}' from the request."
     
 type MissingRequiredJsonException () =
     inherit InputException $"Could not retrieve an expected json body from the request."
