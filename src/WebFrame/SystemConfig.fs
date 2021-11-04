@@ -38,7 +38,7 @@ type InMemoryConfigSetup () =
     member _.Item
         with set ( key: string ) ( value: string ) = configStorage.Add ( key, value )
         
-    member this.SetupWith ( v: Dictionary<string, string> ) =
+    member internal this.SetupWith ( v: Dictionary<string, string> ) =
         for i in v do this.[ i.Key ] <- i.Value
         
     member internal _.Builder = fun ( hostContext: HostBuilderContext ) ( config: IConfigurationBuilder ) ->        
@@ -51,7 +51,7 @@ type StaticFilesSetup () =
     member val WebRoot = "wwwroot" with get, set
     member val Enabled = false with get, set
     member val AllowBrowsing = false with get, set
-    member this.ConfigureApp: AppSetup = fun env conf app ->
+    member internal this.ConfigureApp: AppSetup = fun env conf app ->
         let app =
             if this.Enabled then
                 match this.Options with
@@ -73,7 +73,7 @@ type StaticFilesSetup () =
         else
             app
             
-    member this.ConfigureServices: ServiceSetup = fun _ _ services ->
+    member internal this.ConfigureServices: ServiceSetup = fun _ _ services ->
         if this.AllowBrowsing then
             services.AddDirectoryBrowser ()
         else
@@ -94,7 +94,7 @@ type DynamicConfig () =
     let mutable routes = Routes ()
     let mutable contentRoot = ""
     
-    let configureRoute ( route: RouteDef ) ( endpoints: IEndpointRouteBuilder ) =
+    let configureRoute ( env: IWebHostEnvironment ) ( conf: IConfiguration ) ( route: RouteDef ) ( endpoints: IEndpointRouteBuilder ) =
         let prepareDelegate ( h: TaskHttpHandler ) =
             let handle ( context: HttpContext ) =
                 task {
@@ -115,9 +115,14 @@ type DynamicConfig () =
                         context.Response.StatusCode <- 400
                         return! context.Response.WriteAsync $"{t.Name}: {exn.Message}"
                     | :? ServerException as exn ->
-                        let t = exn.GetType ()
+                        let message =
+                            if env.IsDevelopment () then
+                                let t = exn.GetType ()
+                                $"{t.Name}: {exn.Message}"
+                            else
+                                "Server Error"
                         context.Response.StatusCode <- 500
-                        return! context.Response.WriteAsync $"{t.Name}: {exn.Message}"
+                        return! context.Response.WriteAsync message
                 } :> Task
                 
             RequestDelegate handle
@@ -212,8 +217,10 @@ type DynamicConfig () =
             ( env, config, serv ) |||> getServiceSetup afterServiceSetup |> ignore
         
         webBuilder.ConfigureServices ( Action<WebHostBuilderContext, IServiceCollection> c )
-    let configureEndpoints ( app: IApplicationBuilder ) =
+    let configureEndpoints ( env: IWebHostEnvironment ) ( conf: IConfiguration ) ( app: IApplicationBuilder ) =
         let c = fun ( endpoints: IEndpointRouteBuilder ) ->
+            let configureRoute = configureRoute env conf
+            
             for route in routes do
                 let r = route.Value
                 endpoints |> configureRoute r |> ignore
@@ -243,7 +250,7 @@ type DynamicConfig () =
             // Slot for custom app configurations
             ( env, config, app ) |||> getAppSetup beforeEndpointSetup |> ignore
             
-            app |> configureEndpoints
+            ( env, config, app ) |||> configureEndpoints
             
             // Slot for custom app configurations
             ( env, config, app ) |||> getAppSetup afterEndpointSetup |> ignore

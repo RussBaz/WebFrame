@@ -154,6 +154,28 @@ let main argv =
         // then 400 error is issued automatically
         let itemName = serv.Body.Form.Required<string> "name"
         
+        // If you need to check the content type, you can try:
+        
+        // Is it a form? (bool property)
+        // serv.Body.Form.IsPresent
+        
+        // Is it a json conent type? (bool property)
+        // serv.Body.Json.IsJsonContentType
+        
+        // Is it a json (checks the content type)?
+        // If yes, try validating it. (bool task method)
+        // serv.Body.Json.IsPresent ()
+        
+        // In all other cases (string property):
+        // serv.ContentType
+        
+        // ContentType is an empty string if the header is missing
+        
+        // To set a response Content-Type manually and quickly,
+        // Just assign the required value to the same property
+        // Reading it will still return the content type of the request
+        serv.ContentType <- "text/plain"
+        
         if items |> List.contains itemName then
             serv.StatusCode <- 409
             printfn $"Item {itemName} already exists"
