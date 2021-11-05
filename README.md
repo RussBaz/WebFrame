@@ -13,14 +13,14 @@ A massive helper F# framework for making rapid prototyping with ASP.NET Core ple
   * [Main App](#main-app)
   * [Request Handling](#request-handling)
   * [Request Services](#request-services)
-  * [Route Parts](#route-parts)
-  * [Query Parts](#query-parts)
-  * [Header Parts](#header-parts)
-  * [Cookie Parts](#cookie-parts)
-  * [Config Parts](#config-parts)
-  * [Body Parts](#body-parts)
-    * [Form](#form)
-    * [Json](#json)
+    * [Route Parts](#route-parts)
+    * [Query Parts](#query-parts)
+    * [Header Parts](#header-parts)
+    * [Cookie Parts](#cookie-parts)
+    * [Config Parts](#config-parts)
+    * [Body Parts](#body-parts)
+      * [Form](#form)
+      * [Json](#json)
   * [System Configuration](#system-configuration)
   * [Request Helpers](#request-helpers)
   * [Modules](#modules)
@@ -51,7 +51,7 @@ So I did write it myself!
 
 Yes, you can just write it and experience the full ASP.NET Core server!
 
-There are a lot of helper methods available and mostly all of them are attached to the only (HttpServices) parameter that is passed to the handler on each request. This setup uses the endpoints api and all the routes can be inspected at any time.
+There are a lot of helper methods available and mostly all of them are attached to the only (RequestServices) parameter that is passed to the handler on each request. This setup uses the endpoints api and all the routes can be inspected at any time.
 
 This project is still work in progress and it is far from being a final product. Therefore - all contributions are absolutely welcome.
 
@@ -317,18 +317,28 @@ app.[ Get "/" ] <- fun _ -> task { return EndResponse }
 ```
 If an `InputException` is raised during the request handling then a `400` response with the exception message would returned. In case of `ServerException`, a `500` response is issued instead.
 ### Request Services
-### Route Parts
-### Query Parts
-### Header Parts
-### Cookie Parts
-### Config Parts
-### Body Parts
-#### Form
-#### Json
+`RequestServices` object is passed to all user defined `ServicedHandler` and it is the secret sauce of this framework. It contains intuitively named properties to access different parts of the request and the response. Furthermore, it encapsulates configuration, routes and services (DI). 
+
+It also provides different helpers for many common scenarios. You can even access the raw `HttpRequest` and its properties through it if necessary.
+
+The main rule of thumb that Request Services are trying to follow is:
+* When you read a property, you are reading from a request object
+* When you write to a property, then you are writing to a response object
+* The same applies to the methods (where appropriate)
+  * Different `Get`s would normally extract a value from the request
+  * Different `Set`s would normally set a value in the response
+  * Etc.
+#### Route Parts
+#### Query Parts
+#### Header Parts
+#### Cookie Parts
+#### Config Parts
+#### Body Parts
+##### Form
+##### Json
 ### System Configuration
 ### Request Helpers
 ### Modules
 ### Testing
 ### Exceptions
-
 ## Changelog
