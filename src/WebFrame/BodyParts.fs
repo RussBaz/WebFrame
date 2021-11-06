@@ -220,6 +220,7 @@ type JsonEncodedBody ( req: HttpRequest ) =
             return Some r
         with
         | :? MissingRequiredJsonException -> return None
+        | :? MissingRequiredJsonFieldException -> return None
     }
     
     member this.List<'T> ( path: string ) : Task<'T list> = this.GetFields path

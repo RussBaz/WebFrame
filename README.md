@@ -237,7 +237,7 @@ let main argv =
     app.Build ()
 ```
 ### Request Handling
-How to process icoming requests
+How to process incoming requests
 ```F#
 // There are two types of request handlers
 // Each returning the HttpWorkload in some form
@@ -328,6 +328,92 @@ The main rule of thumb that Request Services are trying to follow is:
   * Different `Get`s would normally extract a value from the request
   * Different `Set`s would normally set a value in the response
   * Etc.
+
+List of available 'services':
+```F#
+// serv: RequestServices
+
+// Raw ASP.NET Core HttpContext
+serv.Context
+
+// Request path properties
+serv.Path
+
+// Request route parameters services
+// Check Route Parts for details
+serv.Route
+
+// Request query parameters services
+// Check Query Parts for details
+serv.Query
+
+// Request and response header services
+// Check Header Parts for details
+serv.Headers
+
+// Request and response cookie services
+// Check Cookies Parts for details
+serv.Cookies
+
+// Server configuration services
+// Check Config Parts for details
+serv.Config
+
+// Request body services
+// Check Body Parts for details
+serv.Body
+
+// Server route services
+serv.AppRoutes
+
+// Set response status code
+serv.StatusCode <- 201
+
+// Get request Content-Type
+serv.ContentType
+// Set response Content-Type
+// Overrides all the existing content-type data on the response
+serv.ContentType <- "text/plain"
+
+// Get ASP.NET Core service
+serv.GetService<IRandomService> ()
+
+// Get the ASP.NET Core endpoint associated with this request
+serv.GetEndpoint ()
+
+// Enable request buffering in ASP.NET Core
+serv.EnableBuffering ()
+
+// HttpWorkload helpers
+// Must be the final result returned by the handler
+
+// Redirect helper
+// 302 to '/'
+serv.Redirect "/"
+// 302 to '/'
+serv.Redirect ( "/", false )
+// 301 to '/'
+serv.Redirect ( "/", true )
+
+// FileResponse
+// Return a file named "myfile.txt"
+serv.File "myfile.txt"
+// Return a file "image.png" and set the content-type manually to "image/png"
+serv.File ( "image.png", "image/png" )
+
+// Return a text reponse
+serv.EndResponse "hello world"
+
+// Return Json response
+// Pass any non-string value and it will try send it as json
+// If the object cannot be parsed as a valid json it will attempt serialising it as string instead
+serv.EndResponse {| Value = "hello world" |}
+
+// End a response
+// Used to send an empty bodied response
+// or when manually constructing the response
+serv.EndResponse ()
+```
 #### Route Parts
 #### Query Parts
 #### Header Parts

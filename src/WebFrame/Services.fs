@@ -50,7 +50,7 @@ type RequestServices ( ctx: HttpContext ) =
         this.ContentType <- contentType
         this.File name
     member _.GetEndpoint () = ctx.GetEndpoint ()
-    member _.StatusCode with get () = ctx.Response.StatusCode and set v = ctx.Response.StatusCode <- v
+    member _.StatusCode with set v = ctx.Response.StatusCode <- v
     member this.ContentType
         with get () = this.Headers.Get "Content-Type" ""
         and set v = this.Headers.Set "Content-Type" [ v ]
