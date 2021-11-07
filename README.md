@@ -137,11 +137,25 @@ The following snippet shows some common scenarios and it is taken directly out o
 open WebFrame
 open type WebFrame.Endpoints.Helpers
 
+//Sample exceptions
+exception TeapotException
+
+type ItemAlreadyExistsException ( itemName: string ) =
+    inherit System.Exception $"Item {itemName} already exists."
+
 [<EntryPoint>]
 let main argv =
     let items = [ "todo1"; "todo2"; "todo3" ]
     
     let api = AppModule "/api"
+    
+    // Whenever a TeapotException is thrown in this module
+    // It will be returning code 418
+    api.Errors <- Error.codeFor<TeapotException> 418
+    
+    // And the same with "ItemAlreadyExistsException"
+    // You can even catch the automatically captured exceptions
+    api.Errors <- Error.codeFor<ItemAlreadyExistsException> 409
     
     // Returning items
     api.Get "/" <- fun serv ->
@@ -176,13 +190,15 @@ let main argv =
         // Reading it will still return the content type of the request
         serv.ContentType <- "text/plain"
         
-        if items |> List.contains itemName then
-            serv.StatusCode <- 409
-            printfn $"Item {itemName} already exists"
-        else
-            serv.StatusCode <- 201
-            printfn $"Faking a successful addition of a new item {itemName}"
+        // This exception was already registered in the module
+        // and it will be automatically handled
+        if items |> List.contains itemName then raise ( ItemAlreadyExistsException itemName )
         
+        if itemName = "coffee" then raise TeapotException
+        
+        serv.StatusCode <- 201
+        printfn $"Faking a successful addition of a new item {itemName}"
+    
         serv.EndResponse ()
     
     let app = App argv
@@ -195,8 +211,22 @@ let main argv =
     
     // Please check the LocalServer sample for more information on the static files
     
+    // Overriding config
+    app.Config.[ "Hello" ] <- "World"
+    // Overriding connecition string for "MyConnection"
+    app.Config.ConnectionStrings "MyConnection" <- "host=localhost;"
+    
     app.Get "/" <- page "Pages/Index.html"
     app.Get "/About" <- page "Pages/About.html"
+    
+    app.Get "/Hello" <- fun serv ->
+        // Accessing configuration at runtime
+        // The field naming syntax is the same as in ASP.NET Core
+        let hello = serv.Config.Required<string> "hello"
+        // Always present as well as some other web host properties
+        let isDevelopment = serv.Config.IsDevelopment
+        
+        serv.EndResponse $"[ {hello} ] Dev mode: {isDevelopment}"
     
     app.Module "ToDoApi" <- api
     

@@ -2,6 +2,7 @@ module WebFrame.Services
 
 open System.Threading.Tasks
 
+open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 
 open Microsoft.Extensions.Configuration
@@ -40,7 +41,7 @@ type RequestServices ( ctx: HttpContext ) =
         ctx.Response.Redirect ( url, permanent )
         EndResponse
         
-    member this.Config = this.GetService<IConfiguration> () |> RuntimeConfigs
+    member this.Config = RuntimeConfigs ( this.GetService<IConfiguration> (), this.GetService<IWebHostEnvironment> () )
     member this.Redirect url = this.Redirect ( url, false )
     member _.EndResponse () = EndResponse
     member _.EndResponse ( t: string ) = TextResponse t
@@ -61,3 +62,9 @@ type TaskServicedHandler = RequestServices -> Task<HttpWorkload>
 
 type HandlerSetup = ServicedHandler -> HttpHandler
 type TaskHandlerSetup = TaskServicedHandler -> TaskHttpHandler
+
+type ServicedErrorHandler<'T when 'T :> exn> = 'T -> RequestServices -> HttpWorkload
+type ServicedTaskErrorHandler<'T when 'T :> exn> = 'T -> RequestServices -> Task<HttpWorkload>
+
+type ErrorHandlerSetup<'T when 'T :> exn> = ServicedErrorHandler<'T> -> ErrorHandler
+type TaskErrorHandlerSetup<'T when 'T :> exn> = ServicedTaskErrorHandler<'T> -> TaskErrorHandler

@@ -16,6 +16,7 @@ open Microsoft.Extensions.Hosting
 
 open Newtonsoft.Json
 
+open WebFrame.Configuration
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
@@ -38,8 +39,8 @@ type InMemoryConfigSetup () =
     member _.Item
         with set ( key: string ) ( value: string ) = configStorage.Add ( key, value )
         
-    member internal this.SetupWith ( v: Dictionary<string, string> ) =
-        for i in v do this.[ i.Key ] <- i.Value
+    member internal this.SetupWith ( v: ConfigOverrides ) =
+        for i in v.Raw do this.[ i.Key ] <- i.Value
         
     member internal _.Builder = fun ( hostContext: HostBuilderContext ) ( config: IConfigurationBuilder ) ->        
         config.AddInMemoryCollection configStorage |> ignore
@@ -95,11 +96,32 @@ type DynamicConfig () =
     let mutable contentRoot = ""
     
     let configureRoute ( env: IWebHostEnvironment ) ( conf: IConfiguration ) ( route: RouteDef ) ( endpoints: IEndpointRouteBuilder ) =
-        let prepareDelegate ( h: TaskHttpHandler ) =
+        let prepareDelegate ( eh: TaskErrorHandler list ) ( h: TaskHttpHandler ) =
+            // Trying to find matching Error Handler
+            let rec handleExceptions ex ( context: HttpContext ) ( h: TaskErrorHandler list ) = task {
+                match h with
+                | [] -> return None
+                | head::tail ->
+                    match! head ex context with
+                    | Some r -> return Some r
+                    | None -> return! handleExceptions ex context tail
+            }
+            
+            // Calling a handler and trying to catch expected exceptions
+            let callHandlerWith ( context: HttpContext ) = task {
+                try
+                    return! h context
+                with
+                | ex ->
+                    let eh = eh |> List.rev
+                    let! w = handleExceptions ex context eh
+                    return w |> Option.defaultWith ( fun () -> raise ex )
+            }
+            
             let handle ( context: HttpContext ) =
                 task {
                     try
-                        let! workload = h context
+                        let! workload = callHandlerWith context
                         return!
                             match workload with
                             | EndResponse -> context.Response.CompleteAsync ()
@@ -110,6 +132,7 @@ type DynamicConfig () =
                                 context.Response.ContentType <- "application/json; charset=utf-8"
                                 context.Response.WriteAsync output
                     with
+                    // Catching unhandled exceptions with default handlers
                     | :? InputException as exn ->
                         let t = exn.GetType ()
                         context.Response.StatusCode <- 400
@@ -128,7 +151,7 @@ type DynamicConfig () =
             RequestDelegate handle
 
         let createEndpoint () =
-            let handler = route.HttpHandler |> prepareDelegate
+            let handler = route.HttpHandler |> prepareDelegate route.ErrorHandlers
             match route.Pattern with
             | Connect p ->
                 endpoints.MapMethods ( p, [ HttpMethods.Connect ], handler )

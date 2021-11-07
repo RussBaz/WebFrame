@@ -1,9 +1,12 @@
 ﻿namespace WebFrame
 
+open System
 open System.Collections.Generic
 
+open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
 
+open WebFrame.Configuration
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
@@ -14,6 +17,7 @@ open WebFrame.SystemConfig
 type AppModule ( prefix: string ) =
     let routes = Routes ()
     let modules = Dictionary<string, AppModule> ()
+    let errorHandlers = List<TaskErrorHandler> ()
     
     let addRoute ( route: RoutePattern ) ( handler: TaskServicedHandler ) =
         if routes.ContainsKey route then
@@ -34,7 +38,9 @@ type AppModule ( prefix: string ) =
             return h s
         }
         
-    let prefixRoute ( r: RouteDef ) = r |> RouteDef.prefixWith prefix
+    // Preprocess each route
+    let preprocessRoute ( r: RouteDef ) =
+        r |> RouteDef.prefixWith prefix |> RouteDef.onErrors ( List.ofSeq errorHandlers )
     
     let updateModuleRoute ( moduleName: string ) ( r: KeyValuePair<RoutePattern, RouteDef> ) =
         r.Value |> RouteDef.name $"{moduleName}:{r.Value.Name}"
@@ -44,8 +50,8 @@ type AppModule ( prefix: string ) =
         |> Seq.map ( updateModuleRoute i.Key )
         
     let getLocalRoutes () = routes |> Seq.map ( fun i -> i.Value )
-    let getModuleRoutes () = modules |> Seq.collect collectModuleRoutes
-    let prefixRoutes ( r: RouteDef seq ) = r |> Seq.map prefixRoute
+    let getInnerRoutes () = modules |> Seq.collect collectModuleRoutes
+    let preprocessRoutes ( r: RouteDef seq ) = r |> Seq.map preprocessRoute
     
     member _.Item
         with set ( index: RoutePattern ) ( value: TaskServicedHandler ) = value |> addRoute index
@@ -103,11 +109,12 @@ type AppModule ( prefix: string ) =
             result.[ route.Pattern ] <- route
         
         getLocalRoutes ()
-        |> Seq.append ( getModuleRoutes () )
-        |> prefixRoutes
+        |> Seq.append ( getInnerRoutes () )
+        |> preprocessRoutes
         |> Seq.iter addRoute
         
         result
+    member this.Errors with set h = h |> errorHandlers.Add
 
 type App ( ?args: string [] ) =
     inherit AppModule ""
@@ -115,7 +122,7 @@ type App ( ?args: string [] ) =
     let mutable host = None
     
     member val Services = DynamicConfig ()
-    member val Config = Dictionary<string, string> ()
+    member val Config = ConfigOverrides ()
     
     member private this.GetHostBuilder ( ?testServer: bool ) =
         let testServer = defaultArg testServer false
@@ -148,3 +155,25 @@ type App ( ?args: string [] ) =
     member this.TestServer () =
         let host = this.GetHostBuilder true
         host.StartAsync ()
+
+module Error =
+    let onTask<'T when 'T :> exn> ( e: ServicedTaskErrorHandler<'T> ) : TaskErrorHandler =
+        fun ( ex: Exception ) ( c: HttpContext ) ->
+            task {
+                match ex with
+                | :? 'T as ex ->
+                    let! r = e ex ( RequestServices c )
+                    return Some r
+                | _ ->
+                    return None
+            }
+    let on<'T when 'T :> exn> ( e: ServicedErrorHandler<'T> ) : TaskErrorHandler =
+        onTask ( fun ex serv -> task { return e ex serv } )
+        
+    let codeFor<'T when 'T :> exn> ( code: int ) : TaskErrorHandler =
+        fun ( e: 'T ) ( serv: RequestServices ) -> task {
+            let t = e.GetType ()
+            serv.StatusCode <- code
+            return serv.EndResponse $"{t.Name}: {e.Message}"
+        }
+        |> onTask

@@ -1,11 +1,14 @@
 module WebFrame.ConfigParts
 
+open Microsoft.AspNetCore.Hosting
+
 open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.Hosting
 
 open WebFrame.Exceptions
 open WebFrame.Converters
 
-type RuntimeConfigs ( conf: IConfiguration ) =
+type RuntimeConfigs ( conf: IConfiguration, env: IWebHostEnvironment ) =
     member _.AsString ( name: string ) =
         let r = conf.[ name ]
         
@@ -29,3 +32,9 @@ type RuntimeConfigs ( conf: IConfiguration ) =
         |> Option.bind convertTo<'T>
         
     member _.Raw = conf
+    member val ApplicationName = env.ApplicationName
+    member val EnvironmentName = env.EnvironmentName
+    member _.IsDevelopment = env.IsDevelopment ()
+    member _.IsStaging = env.IsStaging ()
+    member _.IsProduction = env.IsProduction ()
+    member _.IsEnvironment name = env.IsEnvironment name

@@ -153,6 +153,7 @@ type RouteDef = {
     PreConfig: IEndpointConventionBuilder->IEndpointConventionBuilder
     PostConfig: IEndpointConventionBuilder->IEndpointConventionBuilder
     HttpHandler: TaskHttpHandler
+    ErrorHandlers: TaskErrorHandler list
     Metadata: obj list
 }
 
@@ -167,6 +168,7 @@ module RouteDef =
         PreConfig = id
         PostConfig = id
         HttpHandler = fun _ -> task { return EndResponse }
+        ErrorHandlers = []
         Metadata = [] }
     
     let name ( n: string ) ( r: RouteDef ) = { r with Name = n }
@@ -180,6 +182,11 @@ module RouteDef =
     let postConfig ( c: IEndpointConventionBuilder->IEndpointConventionBuilder ) ( r: RouteDef ) =
         { r with PostConfig = c }
     let handler ( h: TaskHttpHandler ) ( r: RouteDef ) = { r with HttpHandler = h }
+    let onError ( h: TaskErrorHandler) ( r: RouteDef ) = { r with ErrorHandlers = h :: r.ErrorHandlers }
+    let onErrors ( h: TaskErrorHandler list ) ( r: RouteDef ) =
+        let h = h |> List.rev
+        let h = List.append h r.ErrorHandlers
+        { r with ErrorHandlers = h }
     let metadata ( d: obj ) ( r: RouteDef ) = { r with Metadata = d :: r.Metadata }
     let createWithHandler p h = p |> create |> handler h
     

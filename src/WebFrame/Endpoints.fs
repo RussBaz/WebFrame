@@ -20,7 +20,7 @@ type Helpers () =
             return FileResponse path
         }
         
-// Please ignore - left for future references
+// Please ignore - left for the future development
 type private RouteBuilder () =
     member this.A = 9
 type EndpointConfig () =

@@ -41,7 +41,7 @@ type MissingDependencyException ( dependencyName: string ) =
     inherit ServerException $"Could not retrieve an object of type '%s{dependencyName}' from ASP.NET Core's dependency container."
     
 type MissingRequiredConfigException ( configName: string ) =
-    inherit ServerException $"Could not retrieve an object of type '%s{configName}' from ASP.NET Core's configuration container."
+    inherit ServerException $"Could not read a property named '%s{configName}' from ASP.NET Core's configuration container."
     
 type DuplicateRouteException ( routePattern: string ) =
     inherit ServerException $"Could not register a route '{routePattern}'. The route is already registered."

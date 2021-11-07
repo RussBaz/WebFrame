@@ -1,5 +1,6 @@
 module WebFrame.Http
 
+open System
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Http
 
@@ -35,3 +36,6 @@ type HttpWorkload =
     
 type HttpHandler = HttpContext -> HttpWorkload
 type TaskHttpHandler = HttpContext -> Task<HttpWorkload>
+
+type ErrorHandler = Exception -> HttpContext -> HttpWorkload option
+type TaskErrorHandler = Exception -> HttpContext -> Task<HttpWorkload option>
