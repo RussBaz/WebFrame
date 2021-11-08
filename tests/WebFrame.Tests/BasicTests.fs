@@ -32,6 +32,13 @@ app.[ Post "/data" ] <- fun serv -> task {
         |}
 }
 
+app.PostTask "/guid" <- fun serv -> task {
+    let! testField = serv.Body.Json.Optional<Guid option> "id"
+    let field = testField |> Option.flatten
+    
+    return serv.EndResponse {| Result = field |}
+}
+
 [<SetUp>]
 let Setup () =
     ()
@@ -71,4 +78,29 @@ let ``Verifies that the test server is alive`` () = task {
     let! content = r.Content.ReadAsStringAsync ()
     
     content |> shouldEqual """{"Q":""}"""
+}
+
+[<Test>]
+let ``Guid option json test`` () = task {
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    let data = """
+{
+    "id": {
+        "Case": "Some",
+        "Fields": [
+            "00000000-0000-0000-0000-000000000001"
+        ]
+    }
+}
+"""
+    let expected = """{"Result":{"Case":"Some","Fields":["00000000-0000-0000-0000-000000000001"]}}"""
+    use c = new StringContent ( data )
+    c.Headers.ContentType <- Headers.MediaTypeHeaderValue.Parse "application/json"
+    let! r = client.PostAsync ( "/guid", c )
+    
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    content |> shouldEqual expected
+    return ()
 }
