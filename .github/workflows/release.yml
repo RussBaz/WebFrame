@@ -1,0 +1,94 @@
+name: .NET Core Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  check_tag:
+    runs-on: ubuntu-latest
+    outputs:
+      release_all: ${{ steps.check-tag.outputs.release_all }}
+      release_core: ${{ steps.check-tag.outputs.release_core }}
+      release_templates: ${{ steps.check-tag.outputs.release_templates }}
+    steps:
+      - name: check tag ${{ github.ref }}
+        id: check-tag
+        run: |
+          if [[${{ github.ref }} =~ refs\/tags\/all@v[0-9]+\.[0-9]+ ]]; then
+            echo "::set-output name=release_all::true"
+          else
+            echo "::set-output name=release_all::false"
+          fi
+          if [[${{ github.ref }} =~ refs\/tags\/core@v[0-9]+\.[0-9]+ ]]; then
+            echo "::set-output name=release_core::true"
+          else
+            echo "::set-output name=release_core::false"
+          fi
+          if [[${{ github.ref }} =~ refs\/tags\/templates@v[0-9]+\.[0-9]+ ]]; then
+            echo "::set-output name=release_templates::true"
+          else
+            echo "::set-output name=release_templates::false"
+          fi
+  release_core:
+    needs: [ check_tag ]
+    if: needs.check_tag.outputs.release_all == 'true' || needs.check_tag.outputs.release_core == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    strategy:
+      matrix:
+        dotnet: [ '5.0.x' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup dotnet ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install tools
+        run: dotnet tool restore
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build
+      - name: Test with the dotnet CLI
+        run: dotnet test
+      - run: dotnet build --configuration Release ./src/WebFrame/WebFrame.fsproj
+      - name: Create the package
+        run: dotnet paket pack --template ./src/WebFrame/paket.template --build-config Release .
+      - name: Publish the package to nuget
+        run: dotnet nuget push ./*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+      - name: Remove nuget packages
+        run: rm -f *.nupkg
+  release_templates:
+    needs: [ check_tag ]
+    if: needs.check_tag.outputs.release_all == 'true' || needs.check_tag.outputs.release_templates == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    strategy:
+      matrix:
+        dotnet: [ '5.0.x' ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup dotnet ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install tools
+        run: dotnet tool restore
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build
+      - name: Test with the dotnet CLI
+        run: dotnet test
+      - run: dotnet build --configuration Release ./templates/Templates.fsproj
+      - name: Create the package
+        run: dotnet paket pack --template ./templates/paket.template --build-config Release .
+      - name: Publish the package to nuget
+        run: dotnet nuget push ./*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+      - name: Remove nuget packages
+        run: rm -f *.nupkg

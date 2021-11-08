@@ -1,0 +1,4 @@
+FSharp.Core
+Newtonsoft.Json
+Microsoft.AspNetCore.App
+Microsoft.AspNetCore.TestHost

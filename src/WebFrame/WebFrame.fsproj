@@ -22,11 +22,8 @@
     <Compile Include="SystemConfig.fs" />
     <Compile Include="Endpoints.fs" />
     <Compile Include="Library.fs" />
+    <Content Include="paket.references" />
+    <Content Include="paket.template" />
   </ItemGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="5.0.11" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Update="FSharp.Core" Version="6.0.1" />
-  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
