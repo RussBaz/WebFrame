@@ -91,7 +91,7 @@ jobs:
         run: dotnet test
       - run: dotnet build --configuration Release ./templates/templatepack.fsproj
       - name: Create the package
-        run: dotnet pack ./templates/templatepack.fsproj -c Release -p:PackageVersion= ${{ needs.check_tag.outputs.release_version }} -o .
+        run: dotnet pack ./templates/templatepack.fsproj -c Release -p:PackageVersion=${{ needs.check_tag.outputs.release_version }} -o .
       - name: Publish the package to nuget
         run: dotnet nuget push ./*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
       - name: Remove nuget packages
