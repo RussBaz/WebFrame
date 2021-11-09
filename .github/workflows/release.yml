@@ -11,9 +11,9 @@ jobs:
       release_all: ${{ steps.check-tag.outputs.release_all }}
       release_core: ${{ steps.check-tag.outputs.release_core }}
       release_templates: ${{ steps.check-tag.outputs.release_templates }}
+      release_version:  ${{ steps.check-tag.outputs.release_version }}
     steps:
-      - name: check tag ${{ github.ref }}
-        id: check-tag
+      - name: Check the tag ${{ github.ref }}
         run: |
           if [[${{ github.ref }} =~ refs\/tags\/all@v[0-9]+\.[0-9]+ ]]; then
             echo "::set-output name=release_all::true"
@@ -30,6 +30,8 @@ jobs:
           else
             echo "::set-output name=release_templates::false"
           fi
+      - name: Get the version
+        run: echo "::set-output name=release_version::$(GITHUB_REF#refs/tags/*@v)"
   release_core:
     needs: [ check_tag ]
     if: needs.check_tag.outputs.release_all == 'true' || needs.check_tag.outputs.release_core == 'true'
@@ -56,7 +58,7 @@ jobs:
         run: dotnet test
       - run: dotnet build --configuration Release ./src/WebFrame/WebFrame.fsproj
       - name: Create the package
-        run: dotnet paket pack --template ./src/WebFrame/paket.template --build-config Release .
+        run: dotnet paket pack --template ./src/WebFrame/paket.template --specific-version RussBaz.WebFrame ${{ needs.check_tag.outputs.release_version }} --build-config Release .
       - name: Publish the package to nuget
         run: dotnet nuget push ./*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
       - name: Remove nuget packages
@@ -85,9 +87,9 @@ jobs:
         run: dotnet build
       - name: Test with the dotnet CLI
         run: dotnet test
-      - run: dotnet build --configuration Release ./templates/Templates.fsproj
+      - run: dotnet build --configuration Release ./templates/templatepack.fsproj
       - name: Create the package
-        run: dotnet paket pack --template ./templates/paket.template --build-config Release .
+        run: dotnet pack ./templates/templatepack.fsproj -c Release -p:PackageVersion= ${{ needs.check_tag.outputs.release_version }} -o .
       - name: Publish the package to nuget
         run: dotnet nuget push ./*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
       - name: Remove nuget packages

@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageType>Template</PackageType>
+    <PackageId>RussBaz.WebFrame.Templates</PackageId>
+    <Title>WebFrame Templates</Title>
+    <Authors>RussBaz</Authors>
+    <Description>Templates for WebFrame framework</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <TargetFramework>net5.0</TargetFramework>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="All\**\*" Exclude="All\**\bin\**;All\**\obj\**" />
+    <Compile Remove="**\*" />
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+</Project>
