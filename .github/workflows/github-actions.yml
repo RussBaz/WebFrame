@@ -20,10 +20,12 @@ jobs:
         run: dotnet tool restore
       - name: Install dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build
+      - name: Build Core
+        run: dotnet build ./src/WebFrame
+      - name: Build Tests
+        run: dotnet build ./tests/WebFrame.Tests
       - name: Test with the dotnet CLI
-        run: dotnet test -v m
+        run: dotnet test -v m ./tests/WebFrame.Tests
   build_windows:
 
     runs-on: windows-latest
@@ -41,10 +43,12 @@ jobs:
         run: dotnet tool restore
       - name: Install dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build
+      - name: Build Core
+        run: dotnet build ./src/WebFrame
+      - name: Build Tests
+        run: dotnet build ./tests/WebFrame.Tests
       - name: Test with the dotnet CLI
-        run: dotnet test -v m
+        run: dotnet test -v m ./tests/WebFrame.Tests
 
   build_macos:
 
@@ -63,7 +67,9 @@ jobs:
         run: dotnet tool restore
       - name: Install dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build
+      - name: Build Core
+        run: dotnet build ./src/WebFrame
+      - name: Build Tests
+        run: dotnet build ./tests/WebFrame.Tests
       - name: Test with the dotnet CLI
-        run: dotnet test -v m
+        run: dotnet test -v m ./tests/WebFrame.Tests

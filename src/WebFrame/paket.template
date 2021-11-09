@@ -4,10 +4,10 @@ version 0.1
 authors RussBaz
 licenseExpression MIT
 licenseUrl https://licenses.nuget.org/MIT
-readme ./README.md
+readme ./NUGET_README.md
 description
     F# framework for rapid prototyping with ASP.NET Core
 projectUrl https://github.com/RussBaz/WebFrame
 repositoryUrl https://github.com/RussBaz/WebFrame
 files
-    ../../README.md ==> .
+    ./NUGET_README.md ==> .

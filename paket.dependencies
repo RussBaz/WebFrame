@@ -1,17 +1,16 @@
 source https://api.nuget.org/v3/index.json
 
 storage: none
-framework: net5.0, netstandard2.0, netstandard2.1
+framework: net5.0
 
-nuget FSharp.Core ~> 6
+nuget FSharp.Core ~> 6.0.1
 
-nuget Newtonsoft.Json ~> 13
+nuget Newtonsoft.Json ~> 13.0.1
 
-nuget Microsoft.AspNetCore.TestHost ~> 5
-nuget Microsoft.AspNetCore.App
+nuget Microsoft.AspNetCore.TestHost ~> 5.0.12
 
-nuget FsUnit ~> 4
-nuget NUnit ~> 3
-nuget NUnit3TestAdapter ~> 4
+nuget FsUnit ~> 4.0.7
+nuget NUnit ~> 3.13.2
+nuget NUnit3TestAdapter ~> 4.1
 
-nuget Microsoft.NET.Test.Sdk
+nuget Microsoft.NET.Test.Sdk ~> 17.0

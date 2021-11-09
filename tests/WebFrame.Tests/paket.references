@@ -1,6 +1,5 @@
 FSharp.Core
 Microsoft.NET.Test.Sdk
-Microsoft.AspNetCore.App
 Microsoft.AspNetCore.TestHost
 NUnit
 NUnit3TestAdapter

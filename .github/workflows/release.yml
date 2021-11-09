@@ -54,10 +54,12 @@ jobs:
         run: dotnet tool restore
       - name: Install dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build
+      - name: Build Core
+        run: dotnet build ./src/WebFrame
+      - name: Build Tests
+        run: dotnet build ./tests/WebFrame.Tests
       - name: Test with the dotnet CLI
-        run: dotnet test
+        run: dotnet test -v m ./tests/WebFrame.Tests
       - run: dotnet build --configuration Release ./src/WebFrame/WebFrame.fsproj
       - name: Create the package
         run: dotnet paket pack --template ./src/WebFrame/paket.template --specific-version RussBaz.WebFrame ${{ needs.check_tag.outputs.release_version }} --build-config Release .
@@ -85,10 +87,6 @@ jobs:
         run: dotnet tool restore
       - name: Install dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build
-      - name: Test with the dotnet CLI
-        run: dotnet test
       - run: dotnet build --configuration Release ./templates/templatepack.fsproj
       - name: Create the package
         run: dotnet pack ./templates/templatepack.fsproj -c Release -p:PackageVersion=${{ needs.check_tag.outputs.release_version }} -o .

@@ -32,6 +32,12 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "WebFrame.Tests", "tests\Web
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "templatepack", "templates\templatepack.fsproj", "{D93A115F-325B-4433-9EFC-1849311C5574}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{7FC46BB0-9E13-4C1D-8540-AB6DF62285E0}"
+ProjectSection(SolutionItems) = preProject
+	.github\workflows\github-actions.yml = .github\workflows\github-actions.yml
+	.github\workflows\release.yml = .github\workflows\release.yml
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -163,5 +169,6 @@ Global
 		{B5D8BCB2-8231-44BD-846C-F53DEBE88DBC} = {10075972-9166-4D47-87B1-47DC4567CE57}
 		{8457CA84-6CFA-4CDD-8A7D-254E24150956} = {829596DB-A8F4-4DF8-89C8-A372C9B7E88D}
 		{75131042-ADF7-4065-804A-194095945DCA} = {F49A36A9-1D60-4CB3-BCE0-7FE4B998DA65}
+		{7FC46BB0-9E13-4C1D-8540-AB6DF62285E0} = {829596DB-A8F4-4DF8-89C8-A372C9B7E88D}
 	EndGlobalSection
 EndGlobal

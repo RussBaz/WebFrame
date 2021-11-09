@@ -1,9 +1,9 @@
 # WebFrame
 [![Build Status](https://img.shields.io/github/workflow/status/RussBaz/WebFrame/.NET%20Core)](https://github.com/russbaz/webframe/actions/workflows/github-actions.yml)
 [![Latest Published Nuget Version](https://img.shields.io/nuget/v/RussBaz.WebFrame)](https://www.nuget.org/packages/RussBaz.WebFrame/)
-[![Latest Published Nuget Version](https://img.shields.io/nuget/v/RussBaz.WebFrame.Templates?label=templates)](https://www.nuget.org/packages/RussBaz.WebFrame.Templates/)
+[![Latest Published Templates Version](https://img.shields.io/nuget/v/RussBaz.WebFrame.Templates?label=templates)](https://www.nuget.org/packages/RussBaz.WebFrame.Templates/)
 
-A massive helper F# framework for making rapid prototyping with ASP.NET Core pleasant.
+F# framework for rapid prototyping with ASP.NET Core.
 
 ### Fast Travel
 * [Introduction - A Story Time](#introduction---a-story-time)
@@ -57,7 +57,7 @@ Yes, you can just write it and experience the full ASP.NET Core server!
 
 There are a lot of helper methods available and mostly all of them are attached to the only (RequestServices) parameter that is passed to the handler on each request. This setup uses the endpoints api and all the routes can be inspected at any time.
 
-This project is still work in progress and it is far from being a final product. Therefore - all contributions are absolutely welcome.
+This project is still a work in progress and it is far from being a final product. Therefore - all contributions are absolutely welcome.
 
 ## Guiding Principles
 Here are the guiding principals for the development and vision of the project:
@@ -78,10 +78,10 @@ For those who just start with F#, I recommend starting with the following websit
 
 Once you familiarise yourself with the syntax and deal with the .Net runtime, you should check the `Samples` folder.
 
-Clone this repository and then install the minimal template:
+Install the minimal template:
 
 ```
-dotnet new -i ./path/to/templates/Minimal/
+dotnet new -i RussBaz.WebFrame.Templates::*
 ```
 
 Create a new project just like you would normally do in a new directory of your choice:
@@ -89,18 +89,6 @@ Create a new project just like you would normally do in a new directory of your 
 ```
 dotnet new webframe
 ```
-
-Before you can continue, you need to adjust a path to the cloned WebFrame project.
-
-Please find your new project file called `YourProjectName.fsproj` and adjust the `Include` property in the following line (for the newcomers - it is internally an xml file) to point to currently cloned `WebFrame.fsproj` project file:
-
-```xml
-<ItemGroup>
-    <ProjectReference Include="..\..\WebFrame\src\WebFrame.fsproj" />
-</ItemGroup>
-```
-
-This manual adjusting step is currently required because I have not published this project to any package repository and this template is too simple to do it automagically.
 
 Once this is done, run the following command (in the same folder where your .fsproj file is) to start the server:
 
@@ -120,9 +108,9 @@ If it is a console project, add Web framework reference.
 
 If it is a Web project, delete the Setup file and clean up the Program file.
 
-Add WebFrame project reference and open it in the main file. It will immediately import all the required stuff for the minimal setup.
+Add WebFrame package reference and open it in the main file. It will immediately import all the required stuff for the minimal setup.
 
-Please consider using [Paket](https://fsprojects.github.io/Paket/) if you do not mind (as it can reference GitHub projects directly)
+Please consider using [Paket](https://fsprojects.github.io/Paket/) if you do not mind (it can reference GitHub projects directly)
 
 Update the dependencies if required.
 
@@ -136,7 +124,7 @@ Please check the Samples folder for examples of most of available apis.
 * AdvancedServer - a kitchen sink of most other available apis and helpers from the simplest to the most complicated
 
 ### Sample Code
-The following snippet shows some common scenarios and it is taken directly out of StandardServer project in the Samples folder. Please check it out.
+The following snippet shows some common scenarios.
 ```F#
 open WebFrame
 open type WebFrame.Endpoints.Helpers
