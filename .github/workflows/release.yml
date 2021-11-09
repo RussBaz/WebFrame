@@ -8,12 +8,13 @@ jobs:
   check_tag:
     runs-on: ubuntu-latest
     outputs:
-      release_all: ${{ steps.check-tag.outputs.release_all }}
-      release_core: ${{ steps.check-tag.outputs.release_core }}
-      release_templates: ${{ steps.check-tag.outputs.release_templates }}
-      release_version:  ${{ steps.check-tag.outputs.release_version }}
+      release_all: ${{ steps.tag.outputs.release_all }}
+      release_core: ${{ steps.tag.outputs.release_core }}
+      release_templates: ${{ steps.tag.outputs.release_templates }}
+      release_version:  ${{ steps.version.outputs.release_version }}
     steps:
       - name: Check the tag ${{ github.ref }}
+        id: tag
         run: |
           if [[ ${{ github.ref }} =~ refs\/tags\/all@v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "::set-output name=release_all::true"
@@ -31,10 +32,11 @@ jobs:
             echo "::set-output name=release_templates::false"
           fi
       - name: Get the version
+        id: version
         run: echo "::set-output name=release_version::${GITHUB_REF#refs/tags/*@v}"
   release_core:
-    needs: [ check_tag ]
-    if: needs.check_tag.outputs.release_all == 'true' || needs.check_tag.outputs.release_core == 'true'
+    needs: check_tag
+    if: (needs.check_tag.outputs.release_all == 'true') || (needs.check_tag.outputs.release_core == 'true')
     runs-on: ubuntu-latest
     env:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
@@ -64,8 +66,8 @@ jobs:
       - name: Remove nuget packages
         run: rm -f *.nupkg
   release_templates:
-    needs: [ check_tag ]
-    if: needs.check_tag.outputs.release_all == 'true' || needs.check_tag.outputs.release_templates == 'true'
+    needs: check_tag
+    if: (needs.check_tag.outputs.release_all == 'true') || (needs.check_tag.outputs.release_templates == 'true')
     runs-on: ubuntu-latest
     env:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
