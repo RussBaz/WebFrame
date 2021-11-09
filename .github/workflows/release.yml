@@ -15,23 +15,23 @@ jobs:
     steps:
       - name: Check the tag ${{ github.ref }}
         run: |
-          if [[${{ github.ref }} =~ refs\/tags\/all@v[0-9]+\.[0-9]+ ]]; then
+          if [[ ${{ github.ref#refs/tags/ }} =~ all@v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "::set-output name=release_all::true"
           else
             echo "::set-output name=release_all::false"
           fi
-          if [[${{ github.ref }} =~ refs\/tags\/core@v[0-9]+\.[0-9]+ ]]; then
+          if [[ ${{ github.ref#refs/tags/ }} =~ core@v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "::set-output name=release_core::true"
           else
             echo "::set-output name=release_core::false"
           fi
-          if [[${{ github.ref }} =~ refs\/tags\/templates@v[0-9]+\.[0-9]+ ]]; then
+          if [[ ${{ github.re#refs/tags/f }} =~ templates@v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "::set-output name=release_templates::true"
           else
             echo "::set-output name=release_templates::false"
           fi
       - name: Get the version
-        run: echo "::set-output name=release_version::$(GITHUB_REF#refs/tags/*@v)"
+        run: echo "::set-output name=release_version::${GITHUB_REF#refs/tags/*@v}"
   release_core:
     needs: [ check_tag ]
     if: needs.check_tag.outputs.release_all == 'true' || needs.check_tag.outputs.release_core == 'true'
