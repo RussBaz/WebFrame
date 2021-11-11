@@ -18,7 +18,7 @@
   <ItemGroup>
     <Content Include="All\**\*" Exclude="All\**\bin\**;All\**\obj\**" />
     <Compile Remove="**\*" />
-    <None Include="README.md" Pack="true" PackagePath="\"/>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
