@@ -10,8 +10,9 @@ Documentation: https://github.com/RussBaz/WebFrame
 
 Installation:
 
-1. Get templates: `dotnet new --install RussBaz.WebFrame.Templates::*`
-2. Create new project: `dotnet new webframe`
+1. Get the templates: `dotnet new --install "RussBaz.WebFrame.Templates::*"`
+2. Create a new project (e.g. minimal): `dotnet new webframe`
+3. Start the server: `dotnet run`
 
 ```F#
 open WebFrame

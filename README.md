@@ -17,6 +17,7 @@ F# framework for rapid prototyping with ASP.NET Core.
   * [Main App](#main-app)
   * [Request Handling](#request-handling)
   * [Request Services](#request-services)
+    * [Path Parts](#path-parts)
     * [Route Parts](#route-parts)
     * [Query Parts](#query-parts)
     * [Header Parts](#header-parts)
@@ -81,7 +82,7 @@ Once you familiarise yourself with the syntax and deal with the .Net runtime, yo
 Install the minimal template:
 
 ```
-dotnet new -i RussBaz.WebFrame.Templates::*
+dotnet new -i "RussBaz.WebFrame.Templates::*"
 ```
 
 Create a new project just like you would normally do in a new directory of your choice:
@@ -193,6 +194,7 @@ let main argv =
     
         serv.EndResponse ()
     
+    // Passing command arguments to the ASP.NET Core server
     let app = App argv
     
     // Serving Static Files is disabled by default
@@ -222,6 +224,7 @@ let main argv =
     
     app.Module "ToDoApi" <- api
     
+    // Running on the default ports if not overriden in the settings
     app.Run ()
     
     0 // exit code
@@ -354,11 +357,13 @@ The main rule of thumb that Request Services are trying to follow is:
 List of available 'services':
 ```F#
 // serv: RequestServices
+// Defined in: Services
 
 // Raw ASP.NET Core HttpContext
 serv.Context
 
 // Request path properties
+// Check path Parts for details
 serv.Path
 
 // Request route parameters services
@@ -435,6 +440,24 @@ serv.EndResponse {| Value = "hello world" |}
 // Used to send an empty bodied response
 // or when manually constructing the response
 serv.EndResponse ()
+```
+#### Path Parts
+```F#
+serv.Path.Method // string property
+serv.Path.Protocol // string property
+serv.Path.Scheme // string property
+serv.Path.Host // string property
+serv.Path.Port // int option property
+// Path Base is a part of ASP.NET Core
+// Most of the time it is an empty string
+// It can be useful in some hosting scenarios
+// but requires an additional middleware to be activated
+// Please refer to this stackoverflow question:
+// https://stackoverflow.com/questions/58614864/whats-the-difference-between-httprequest-path-and-httprequest-pathbase-in-asp-n
+serv.Path.PathBase // string property
+serv.Path.Path // string property
+serv.Path.QueryString // string property
+serv.Path.IsHttps // bool property
 ```
 #### Route Parts
 #### Query Parts
