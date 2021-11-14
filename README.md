@@ -442,6 +442,7 @@ serv.EndResponse {| Value = "hello world" |}
 serv.EndResponse ()
 ```
 #### Path Parts
+Path parts are read only properties describing the path of currently processed web request.
 ```F#
 serv.Path.Method // string property
 serv.Path.Protocol // string property
@@ -460,6 +461,26 @@ serv.Path.QueryString // string property
 serv.Path.IsHttps // bool property
 ```
 #### Route Parts
+Route parts services help with reading, parsing and validating the route template properties. 
+```F#
+// The route template syntax is the ASP.NET Core default syntax
+// Here is the link to the docs:
+// https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-6.0#route-template-reference
+app.Get "/resource/{id:guid}/{property?}" <- fun serv ->
+    // The following line reads the "id" route property and tries to parse it into Guid
+    // if it is absent or cannot be parsed,
+    // then MissingRequiredRouteParameterException is raised
+    let resId = serv.Route.Require<Guid> "id"
+    // Will return a string optional with the value of "property" route segment
+    let property = serv.Route.Optional<srting> "property"
+    // Alternatively, you can specify the default value for the optional segment inline
+    let property = serv.Route.Get "property" "none"
+    // If you just want a string option without any parsing, then use:
+    let property = serv.Route.AsString "property"
+    // NOTE, this does not override the default ASP.NET Core template matching and type checking
+    
+    serv.EndResponse ()
+```
 #### Query Parts
 #### Header Parts
 #### Cookie Parts
