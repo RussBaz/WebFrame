@@ -9,7 +9,7 @@ open WebFrame.Exceptions
 open WebFrame.Converters
 
 type RuntimeConfigs ( conf: IConfiguration, env: IWebHostEnvironment ) =
-    member _.AsString ( name: string ) =
+    member _.String ( name: string ) =
         let r = conf.[ name ]
         
         match box r with
@@ -28,7 +28,7 @@ type RuntimeConfigs ( conf: IConfiguration, env: IWebHostEnvironment ) =
         
     member this.Optional<'T> ( name: string ) =
         name
-        |> this.AsString
+        |> this.String
         |> Option.bind convertTo<'T>
         
     member _.Raw = conf

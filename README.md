@@ -461,7 +461,7 @@ serv.Path.QueryString // string property
 serv.Path.IsHttps // bool property
 ```
 #### Route Parts
-Route parts services help with reading, parsing and validating the route template properties. 
+Route parts services help with reading, parsing and validating the route template properties.
 ```F#
 // The route template syntax is the ASP.NET Core default syntax
 // Here is the link to the docs:
@@ -470,20 +470,131 @@ app.Get "/resource/{id:guid}/{property?}" <- fun serv ->
     // The following line reads the "id" route property and tries to parse it into Guid
     // if it is absent or cannot be parsed,
     // then MissingRequiredRouteParameterException is raised
-    let resId = serv.Route.Require<Guid> "id"
+    let resId = serv.Route.Required<Guid> "id"
     // Will return a string optional with the value of "property" route segment
     let property = serv.Route.Optional<srting> "property"
     // Alternatively, you can specify the default value for the optional segment inline
     let property = serv.Route.Get "property" "none"
     // If you just want a string option without any parsing, then use:
-    let property = serv.Route.AsString "property"
+    let property = serv.Route.String "property"
     // NOTE, this does not override the default ASP.NET Core template matching and type checking
     
+    // Accessing raw RouteValueDictionary
+    let raw = serv.Route.Raw
     serv.EndResponse ()
 ```
 #### Query Parts
+Query parts services help with reading, parsing and validating the request query parameters.
+```F#
+app.Get "/resource/" <- fun serv ->
+    // Trying to read query parameter "q" as a string
+    // Can only be None if it is missing as there is no parsing involved
+    let res = serv.Query.String "q"
+    // This will try getting "q" query parameter and parse it into int
+    // It will throw MissingRequiredQueryParameterException if it fails to read or parse
+    let res = serv.Query.Required<int> "q"
+    // If reading or parsing fails, then it will return None
+    let res = serv.Query.Optional<int> "q"
+    // Trying to read and parse the "q" query parameter with a default value
+    let res = serv.Query.Get "q" 10
+    
+    // If you were expecting multiple query parameters with the same name
+    // Use commands prefixed with All
+    
+    // Never fails. Returns a list of "q" parameters that managed to parse into the specified type
+    let res = serv.Query.All<int> "q"
+    // Returns all "q" parameters as strings
+    // Returns None if none is found
+    let res = serv.Query.AllString "q"
+    // It will now attempt to parse the string values into the specified type
+    // If any fails - it will throw MissingRequiredQueryParameterException
+    let res = serv.Query.AllRequired<int> "q"
+    // It will now attempt parsing the string values into the specified type
+    // Returns None if any conversion fails
+    let res = serv.Query.AllOptional<int> "q"
+    
+    // This will return the number of times "q" parameter was specified in the request
+    // It is 0 if the query parameter is missing
+    let count = serv.Query.Count "q"
+    
+    // Accessing the raw IQueryCollection
+    let raw = serv.Query.Raw
+    
+    serv.EndResponse ()
+```
 #### Header Parts
+Header parts services help with reading, parsing and setting request and response headers.
+```F#
+app.Get "/" <- fun serv ->
+    // Next methods only return the first found value
+    // Returns the request header named "custom"
+    // Will throw MissingRequiredHeaderException if not found
+    let h = serv.Headers.Required "custom"
+    // Returns the request header named "custom"
+    // None if not found
+    let h = serv.Headers.Optional "custom"
+    // Tries reading the request header named "custom"
+    // If it is not found, then a default value is returned
+    let h = serv.Headers.Get "custom" "myvalue"
+    
+    // Returns a list of comma separated values from the request header named "custom"
+    // Returns an empty list if not found
+    let h = serv.Headers.All "custom"
+    
+    // Replaces response header named "custom" with a comma separated list of values
+    serv.Headers.Set "custom" [ "myvalue" ]
+    // Appends an additional value to the response header named "custom"
+    serv.Headers.Append "custom" "myvalue"
+    // Removes the response header named "custom"
+    serv.Headers.Delete "custom"
+    
+    // Counting how many comma seaparated segments request header "custom" has
+    // If it is 0 if the header is missing
+    let count = serv.Headers.Count "count"
+    
+    // Getting raw request IHeaderCollection
+    let inHeaders = serv.Headers.Raw.In
+    // Getting raw response IHeaderCollection
+    let outHeaders = serv.Headers.Raw.Out
+    
+    serv.EndResponse ()
+```
 #### Cookie Parts
+Cookie parts services help with reading, parsing and setting request and response cookies.
+```F#
+app.Get "/" <- fun serv ->
+    // Trying to read "mycookie" cookie from the request
+    // If not found, then MissingRequiredCookieException is thrown 
+    let c = serv.Cookies.Required "mycookie"
+    // Trying to read the request cookie
+    // Returns None if not found
+    let c = serv.Cookies.Optional "mycookie"
+    // Trying to read the request cookie
+    // And if not found, then the default value is returned
+    let c = serv.Cookies.Get "mycookies" "myvalue"
+    
+    // Asking to set a cookie to the specified value
+    serv.Cookies.Set "mycookie" "myvalue"
+    
+    // Cookie options is an ASP class
+    // open Microsoft.AspNetCore.Http
+    let emptyOpts = CookieOptions ()
+    
+    // Requesting a new cookie with additional options
+    serv.Cookies.SetWithOptions "mycookies" "myvalue" emptyOpts
+    
+    // Requesting a removal of the cookie
+    serv.Cookies.Delete "mycookies"
+    // Requesting a cookie removal with additional options
+    serv.Cookies.DeleteWithOptions "mycookie" emptyOpts
+    
+    // Getting a raw IRequestCookieCollection
+    let rawIn = Serv.Cookies.Raw.In
+    // Getting a raw IResponseCookies
+    let rawOut = Serv.Cookies.Raw.Out
+    
+    serv.EndResponse ()
+```
 #### Config Parts
 #### Body Parts
 ##### Form

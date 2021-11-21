@@ -56,42 +56,56 @@ type FormEncodedBody ( req: HttpRequest ) =
             files <- Some f
             
             f
-            
-    let getStringList ( name: string ) =
+        
+    member this.String ( name: string ) : string option =
+        name |> this.Optional<string>
+        
+    member this.Required<'T when 'T : equality> ( name: string ) : 'T =
+        name
+        |> this.Optional<'T>
+        |> Option.defaultWith ( fun _ -> raise ( MissingRequiredFormFieldException name ) )
+        
+    member this.Optional<'T when 'T : equality> ( name: string ) : 'T option =
+        name
+        |> this.AllString
+        |> Option.bind List.tryHead
+        |> Option.bind convertTo<'T>
+        
+    member this.Get<'T when 'T : equality> ( name: string ) ( d: 'T ) : 'T =
+        name
+        |> this.Optional<'T>
+        |> Option.defaultValue d
+        
+    member this.AllString ( name: string ) : string list option =
         let form = getForm ()
         
         match form.TryGetValue name with
         | true, v -> Some v
         | _ -> None
         |> Option.map ( fun i -> i.ToArray () |> List.ofArray )
-        
-    member private this.TryHead<'T> ( name: string ) =
-        name
-        |> getStringList
-        |> Option.bind List.tryHead
-        |> Option.bind convertTo<'T>
             
-    member this.List<'T when 'T : equality> ( name: string ) =
+    member this.All<'T when 'T : equality> ( name: string ) : 'T list =
         name
-        |> getStringList
+        |> this.AllOptional<'T>
+        |> Option.defaultValue []
+        
+    member this.AllRequired<'T when 'T : equality> ( name: string ) : 'T list =
+        name
+        |> this.AllOptional<'T>
+        |> Option.defaultWith ( fun _ -> raise ( MissingRequiredFormFieldException name ) )
+        
+    member this.AllOptional<'T when 'T : equality> ( name: string ) : 'T list option =
+        name
+        |> this.AllString
         |> Option.map ( List.map convertTo<'T> )
         |> Option.bind ( fun i -> if i |> List.contains None then None else Some i )
         |> Option.map ( List.map Option.get )
-        |> Option.defaultValue []
+        |> Option.bind ( fun i -> if i.Length = 0 then None else Some i )
         
-    member this.Optional<'T when 'T : equality> ( name: string ) =
+    member this.Count<'T when 'T : equality> ( name: string ) : int =
         name
-        |> this.TryHead<'T>
-        
-    member this.Get<'T when 'T : equality> ( name: string ) ( d: 'T ) =
-        name
-        |> this.Optional<'T>
-        |> Option.defaultValue d
-        
-    member this.Required<'T when 'T : equality> ( name: string ) =
-        name
-        |> this.TryHead<'T>
-        |> Option.defaultWith ( fun _ -> raise ( MissingRequiredFormFieldException name ) )
+        |> this.All<'T>
+        |> List.length
         
     member _.Raw with get () = try getForm () |> Some with | :? MissingRequiredFormException -> None
     member _.Files with get () = try getFiles () |> Some with | :? MissingRequiredFormException -> None
@@ -100,7 +114,7 @@ type FormEncodedBody ( req: HttpRequest ) =
 type RequireAllPropertiesContractResolver() =
     inherit DefaultContractResolver()
 
-    // Code examples are taken from:
+    // Code samples are taken from:
     // https://stackoverflow.com/questions/29655502/json-net-require-all-properties-on-deserialization/29660550
         
     override this.CreateProperty ( memberInfo, serialization ) =
@@ -202,6 +216,10 @@ type JsonEncodedBody ( req: HttpRequest ) =
     
     member this.Exact<'T> () : Task<'T> = this.ReadJson<'T> ()
     
+    member this.String ( path: string ) : Task<string option> = task {
+        return! this.Optional<string> path
+    } 
+    
     member this.Get<'T> ( path: string ) ( d: 'T ) : Task<'T> = task {
         let! v = this.Optional<'T> path
         return v |> Option.defaultValue d
@@ -211,19 +229,56 @@ type JsonEncodedBody ( req: HttpRequest ) =
         try
             return! this.GetField<'T> path
         with
-        | :? NullReferenceException -> return raise ( MissingRequiredJsonFieldException path )
+        | :? NullReferenceException -> return ( raise ( MissingRequiredJsonFieldException path ) )
+        | :? MissingRequiredJsonException as ex -> return ( raise ex )
+        | :? MissingRequiredJsonFieldException as ex -> return ( raise ex )
     }
             
     member this.Optional<'T> ( path: string ) : Task<'T option> = task {
         try
-            let! r = this.Required<'T> path
+            let! r = this.GetField<'T> path
             return Some r
         with
+        | :? NullReferenceException -> return None
         | :? MissingRequiredJsonException -> return None
         | :? MissingRequiredJsonFieldException -> return None
     }
     
-    member this.List<'T> ( path: string ) : Task<'T list> = this.GetFields path
+    member this.All<'T> ( path: string ) : Task<'T list> = this.GetFields path
+    
+    member this.AllString ( path: string ) = task {
+        let! j = getJson ()
+        
+        return
+            path
+            |> j.SelectTokens
+            |> Seq.map ( fun i -> i.ToString () )
+            |> List.ofSeq
+    }
+
+    member this.AllRequired<'T> ( path: string ) = task {
+        try
+            return! this.GetFields<'T> path
+        with
+        | :? NullReferenceException -> return ( raise ( MissingRequiredJsonFieldException path ) )
+        | :? MissingRequiredJsonException as ex -> return ( raise ex )
+        | :? MissingRequiredJsonFieldException as ex -> return ( raise ex )
+    }
+
+    member this.AllOptional<'T> ( path: string ) : Task<'T list option> = task {
+        try
+            let! r = this.GetFields<'T> path
+            return Some r
+        with
+        | :? NullReferenceException -> return None
+        | :? MissingRequiredJsonException -> return None
+        | :? MissingRequiredJsonFieldException -> return None
+    }
+
+    member this.Count ( path: string ) : Task<int> = task {
+        let! v = this.All path
+        return v.Length
+    }
     
     member this.Raw with get () : Task<JObject> = task {
         let! isPresent = this.IsPresent ()
