@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="RussBaz.WebFrame" Version="0.0.8" />
+    <PackageReference Include="RussBaz.WebFrame" Version="0.0.9" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net5.0' ">

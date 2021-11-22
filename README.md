@@ -596,6 +596,50 @@ app.Get "/" <- fun serv ->
     serv.EndResponse ()
 ```
 #### Config Parts
+Config parts services help with reading, parsing and validating server settings.
+
+`WebFrame` uses default ASP.NET Core configuration options.
+
+In addition, it provides ways to quickly override the configs with inmemory values.
+```F#
+let app = App argv
+
+// Overriding the config with custom values
+app.Config.[ "Hello:Wolrd" ] <- "Value"
+// Overriding connecition string for "MyConnection"
+app.Config.ConnectionStrings "MyConnection" <- "host=localhost;"
+
+app.Get "/" <- fun serv ->
+    // NOTE: Missing configs are Server Exceptions
+    // and therefore will result 5xx errors
+
+    // Trying to read config with given keys
+    // Returns None if not found
+    let c = serv.Config.String "Hello:World"
+    // It will throw MissingRequiredConfigException if the key is not found
+    // or cannot be parsed
+    let c = serv.Config.Required<string> "Hello:World"
+    // Returns None if not found or cannot be parsed
+    let c = serv.Config.Optional<string> "Hello:World"
+    // Returns a default value if not found or cannot be parsed
+    let c = serv.Config.Get "Hello:World" "N/A"
+    
+    // Helpers for dealing with environments
+    
+    // String properties (fixed for every request)
+    let a = serv.Config.ApplicationName
+    let e = serv.Config.EnvironmentName
+    
+    // Bool properties (fixed for every request)
+    let r = serv.Config.IsDevelopment
+    let r = serv.Config.IsStaging
+    let r = serv.Config.IsProduction
+    
+    // Returns true if teh environment name matches the provided one
+    let r = serv.Config.IsEnvironment "EnvironmentName"
+    
+    serv.EndResponse ()
+```
 #### Body Parts
 ##### Form
 ##### Json
