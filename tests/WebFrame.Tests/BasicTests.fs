@@ -22,6 +22,8 @@ type MyRecord = {
 
 let app = App ()
 
+app.Config.[ "hello" ] <- "World"
+
 app.[ Get "/" ] <- fun _ -> task { return TextResponse "Hello World!" }
 app.[ Get "/data" ] <- alwaysTask ( TextResponse "Data" )
 app.[ Post "/data" ] <- fun serv -> task {
@@ -38,6 +40,11 @@ app.PostTask "/guid" <- fun serv -> task {
     
     return serv.EndResponse {| Result = field |}
 }
+
+app.Get "/log" <- fun serv ->
+    serv.Log.Information "Test Log"
+    
+    serv.EndResponse ()
 
 [<SetUp>]
 let Setup () =
@@ -102,5 +109,17 @@ let ``Guid option json test`` () = task {
     let! content = r.Content.ReadAsStringAsync ()
     
     content |> shouldEqual expected
+    return ()
+}
+
+[<Test>]
+let ``Logging works as expected`` () = task {
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! _ = client.GetAsync "/log"
+    let! _ = client.GetAsync "/log"
+    let! _ = client.GetAsync "/log"
+    
     return ()
 }

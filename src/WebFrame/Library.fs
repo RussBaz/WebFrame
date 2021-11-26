@@ -7,6 +7,7 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
 
 open WebFrame.Configuration
+open WebFrame.Logging
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
@@ -14,7 +15,7 @@ open WebFrame.Services
 open WebFrame.SystemConfig
 
     
-type AppModule ( prefix: string ) =
+type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
     let routes = Routes ()
     let modules = Dictionary<string, AppModule> ()
     let errorHandlers = List<TaskErrorHandler> ()
@@ -24,12 +25,18 @@ type AppModule ( prefix: string ) =
             raise ( DuplicateRouteException ( route.ToString () ) )
             
         let h: TaskHttpHandler = fun ctx -> ctx |> RequestServices |> handler
-            
-        routes.[ route ] <- RouteDef.createWithHandler route h
         
-    let addModule name m =
+        let routeDef = RouteDef.createWithHandler route h
+            
+        routes.[ route ] <- routeDef
+        
+    let addModule name ( m: #AppModule ) =
         if modules.ContainsKey name then
             raise ( DuplicateModuleException name )
+        
+        if m.Defaults <> defaultConfig then
+            let t = m.GetType ()
+            raise ( DifferentModuleDefaultsException ( name, t.Name ))
             
         modules.[ name ] <- m
         
@@ -52,6 +59,8 @@ type AppModule ( prefix: string ) =
     let getLocalRoutes () = routes |> Seq.map ( fun i -> i.Value )
     let getInnerRoutes () = modules |> Seq.collect collectModuleRoutes
     let preprocessRoutes ( r: RouteDef seq ) = r |> Seq.map preprocessRoute
+    
+    new ( prefix: string ) = AppModule ( prefix, SystemDefaults.standard )
     
     member _.Item
         with set ( index: RoutePattern ) ( value: TaskServicedHandler ) = value |> addRoute index
@@ -115,14 +124,18 @@ type AppModule ( prefix: string ) =
         
         result
     member this.Errors with set h = h |> errorHandlers.Add
+    member internal _.Defaults = defaultConfig
 
-type App ( ?args: string [] ) =
-    inherit AppModule ""
-    let args = defaultArg args [||]
+type App ( defaultConfig: SystemDefaults ) =
+    inherit AppModule ( "", defaultConfig )
+    let args = defaultConfig.Args
     let mutable host = None
     
-    member val Services = DynamicConfig ()
-    member val Config = ConfigOverrides ()
+    new () = App SystemDefaults.standard
+    new ( args: string [] ) = App ( SystemDefaults.defaultWithArgs args )
+    
+    member val Services = SystemSetup defaultConfig
+    member val Config = ConfigOverrides defaultConfig
     
     member private this.GetHostBuilder ( ?testServer: bool ) =
         let testServer = defaultArg testServer false
@@ -155,6 +168,11 @@ type App ( ?args: string [] ) =
     member this.TestServer () =
         let host = this.GetHostBuilder true
         host.StartAsync ()
+    
+    member val Logger =
+        let f = defaultConfig.LoggerHostFactory
+        let name = defaultConfig |> SystemDefaults.getGlobalLoggerName
+        Logger ( f, name )
 
 module Error =
     let onTask<'T when 'T :> exn> ( e: ServicedTaskErrorHandler<'T> ) : TaskErrorHandler =

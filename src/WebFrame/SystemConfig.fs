@@ -33,19 +33,19 @@ type SimpleRouteDescriptor ( routes: Routes ) =
             | true, v -> Some v
             | _ -> None
 
-type InMemoryConfigSetup () =
+type InMemoryConfigSetup ( defaultConfig: SystemDefaults ) =
     let configStorage = Dictionary<string, string> ()
     
     member _.Item
-        with set ( key: string ) ( value: string ) = configStorage.Add ( key, value )
-        
+        with set ( key: string ) ( value: string ) = configStorage.[ key ] <- value
+    member val WebFrameSettingsPrefix = defaultConfig.SettingsPrefix
     member internal this.SetupWith ( v: ConfigOverrides ) =
         for i in v.Raw do this.[ i.Key ] <- i.Value
         
     member internal _.Builder = fun ( hostContext: HostBuilderContext ) ( config: IConfigurationBuilder ) ->        
         config.AddInMemoryCollection configStorage |> ignore
 
-type StaticFilesSetup () =
+type StaticFilesSetup ( defaultConfig: SystemDefaults ) =
     member val Options: StaticFileOptions option = None with get, set
     member val BrowsingOptions: DirectoryBrowserOptions option = None with get, set
     member val Route = "" with get, set
@@ -80,7 +80,7 @@ type StaticFilesSetup () =
         else
             services
 
-type DynamicConfig () =
+type SystemSetup ( defaultConfig: SystemDefaults ) =
     let beforeServiceSetup = List<ServiceSetup> ()
     let afterServiceSetup = List<ServiceSetup> ()
     let beforeAppSetup = List<AppSetup> ()
@@ -89,8 +89,8 @@ type DynamicConfig () =
     let afterEndpointSetup = List<AppSetup> ()
     let afterAppSetup = List<AppSetup> ()
     let endpointSetup = List<EndpointSetup> ()
-    let staticFilesSetup = StaticFilesSetup ()
-    let configSetup = InMemoryConfigSetup ()
+    let staticFilesSetup = StaticFilesSetup defaultConfig
+    let configSetup = InMemoryConfigSetup defaultConfig
     
     let mutable routes = Routes ()
     let mutable contentRoot = ""
@@ -311,7 +311,7 @@ type DynamicConfig () =
         
     let configureTestHost =
         fun ( webBuilder: IWebHostBuilder ) -> webBuilder.UseTestServer ()
-        >> configureHost    
+        >> configureHost
 
     let createHostBuilder ( c: IWebHostBuilder->unit ) args =
         Host.CreateDefaultBuilder args

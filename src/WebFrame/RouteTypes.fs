@@ -188,7 +188,7 @@ module RouteDef =
         let h = List.append h r.ErrorHandlers
         { r with ErrorHandlers = h }
     let metadata ( d: obj ) ( r: RouteDef ) = { r with Metadata = d :: r.Metadata }
-    let createWithHandler p h = p |> create |> handler h
+    let createWithHandler p h = p |> create |> handler h |> name ( p.ToString () )
     
 type Routes = Dictionary<RoutePattern, RouteDef>
 

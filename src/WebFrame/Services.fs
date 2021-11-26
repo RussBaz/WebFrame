@@ -7,11 +7,13 @@ open Microsoft.AspNetCore.Http
 
 open Microsoft.Extensions.Configuration
 open WebFrame.ConfigParts
+open WebFrame.Configuration
 open WebFrame.Http
 open WebFrame.BodyParts
 open WebFrame.CookieParts
 open WebFrame.Exceptions
 open WebFrame.HeaderParts
+open WebFrame.Logging
 open WebFrame.QueryParts
 open WebFrame.RouteParts
 open WebFrame.RouteTypes
@@ -55,6 +57,7 @@ type RequestServices ( ctx: HttpContext ) =
     member this.ContentType
         with get () = this.Headers.Get "Content-Type" ""
         and set v = this.Headers.Set "Content-Type" [ v ]
+    member this.Log = Logger ( this.GetService (), "Local" )
     member _.EnableBuffering () = ctx.Request.EnableBuffering ()
         
 type ServicedHandler = RequestServices -> HttpWorkload

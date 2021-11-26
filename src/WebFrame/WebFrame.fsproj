@@ -9,6 +9,8 @@
     <Compile Include="Exceptions.fs" />
     <Compile Include="Extensions.fs" />
     <Compile Include="Converters.fs" />
+    <Compile Include="Configuration.fs" />
+    <Compile Include="Logging.fs" />
     <Compile Include="Http.fs" />
     <Compile Include="RouteTypes.fs" />
     <Compile Include="RouteParts.fs" />
@@ -18,7 +20,6 @@
     <Compile Include="BodyParts.fs" />
     <Compile Include="ConfigParts.fs" />
     <Compile Include="Services.fs" />
-    <Compile Include="Configuration.fs" />
     <Compile Include="SystemConfig.fs" />
     <Compile Include="Endpoints.fs" />
     <Compile Include="Library.fs" />
