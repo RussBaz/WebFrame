@@ -131,6 +131,7 @@ let ``Guid option json test`` () = task {
 
 [<Test>]
 let ``Logging works as expected`` () = task {
+    // TODO: actually make this test work
     use! server = app.TestServer ()
     use client = server.GetTestClient ()
     

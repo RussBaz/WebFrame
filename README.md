@@ -41,15 +41,10 @@ I wanted something quick. Why couldn't I just do the following?
 ```F#
 open WebFrame
 
-[<EntryPoint>]
-let main _ =
-    let app = App ()
-    
-    app.Get "/" <- fun serv -> serv.EndResponse "Hello World!"
-    
-    app.Run ()
-    
-    0 // exit code
+let app = App ()
+
+app.Get "/" <- fun serv -> serv.EndResponse "Hello World!"
+app.Run ()
 ```
 
 So I did write it myself!
@@ -233,33 +228,48 @@ let main argv =
 ### Main App
 How to create, build and run a WebFrame app
 ```F#
+open System
 open WebFrame
 
-[<EntryPoint>]
-let main argv =
-    // All it takes to create an app
-    let app = App ()
+let argv = Environment.GetCommandLineArgs ()
 
-    // If you want to pass command line arguments
-    // to the underlying ASP.NET Core server
-    let app = App argv
- 
-    // To run an app (blocking mode)
-    // If the app is not yet built
-    // it will run the build step automatically
-    // However, it will not rebuild the app if it is already built
-    app.Run ()
-    
-    // You can also specify directly the connection urls in this step
-    // This will override all existing 'urls' configurations
-    // Furthermore, it will force the app to be rebuilt even if it is already built
-    app.Run [ "http://localhost:5000" ]
-    
-    // To Build an app manually before running it
-    // One can run this optional command
-    // Once the app is built, further changes to configs or endpoints
-    // will not take place untill the app is rebuilt
-    app.Build ()
+// All it takes to create an app
+let app = App ()
+
+// If you want to pass command line arguments
+// to the underlying ASP.NET Core server
+let app = App argv
+
+// To run an app (blocking mode)
+// If the app is not yet built
+// it will run the build step automatically
+// However, it will not rebuild the app if it is already built
+app.Run ()
+
+// You can also specify directly the connection urls in this step
+// This will override all existing 'urls' configurations
+// Furthermore, it will force the app to be rebuilt even if it is already built
+app.Run [ "http://localhost:5000" ]
+
+// To Build an app manually before running it
+// One can run this optional command
+// Once the app is built, further changes to configs or endpoints
+// will not take place untill the app is rebuilt
+app.Build ()
+
+// If you need to adjust some default WebFrame constants
+// You can do the following
+open WebFrame.Configuration
+
+let defaults = { SystemDefaults.standard with SettingsPrefix = "MyApp" }
+let app = App defaults
+
+// You can still pass the args
+let defaults = { defaults with Args = args }
+let app = App defaults
+
+// For additional options for adjusting the defaults,
+// please check the configuration section of the docs
 ```
 ### Request Handling
 How to process incoming requests

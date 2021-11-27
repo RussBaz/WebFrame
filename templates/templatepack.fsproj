@@ -7,7 +7,7 @@
     <Authors>RussBaz</Authors>
     <Description>Templates for WebFrame framework</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <WarnOn>3390;$(WarnOn)</WarnOn>
     <IncludeContentInPack>true</IncludeContentInPack>
     <IncludeBuildOutput>false</IncludeBuildOutput>

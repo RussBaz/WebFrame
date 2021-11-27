@@ -17,13 +17,9 @@ Installation:
 ```F#
 open WebFrame
 
-[<EntryPoint>]
-let main _ =
-    let app = App ()
-    
-    app.Get "/" <- fun serv -> serv.EndResponse "Hello World!"
-    
-    app.Run ()
-    
-    0 // exit code
+let app = App ()
+
+app.Get "/" <- fun serv -> serv.EndResponse "Hello World!"
+
+app.Run ()
 ```

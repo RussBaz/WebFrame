@@ -1,14 +1,14 @@
 STORAGE: NONE
-RESTRICTION: == net5.0
+RESTRICTION: == net6.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
     FSharp.Core (6.0.1)
-    FsUnit (4.0.7)
-      FSharp.Core (>= 4.7.2)
+    FsUnit (4.1)
+      FSharp.Core (>= 5.0.2)
       NETStandard.Library (>= 2.0.3)
       NUnit (>= 3.13.2 < 3.14)
-    Microsoft.AspNetCore.TestHost (5.0.12)
-      System.IO.Pipelines (>= 5.0.1)
+    Microsoft.AspNetCore.TestHost (6.0)
+      System.IO.Pipelines (>= 6.0)
     Microsoft.CodeCoverage (17.0)
     Microsoft.NET.Test.Sdk (17.0)
       Microsoft.CodeCoverage (>= 17.0)
@@ -28,10 +28,8 @@ NUGET
       NETStandard.Library (>= 2.0)
     NUnit3TestAdapter (4.1)
     System.Collections.Immutable (6.0)
-      System.Memory (>= 4.5.4)
       System.Runtime.CompilerServices.Unsafe (>= 6.0)
     System.IO.Pipelines (6.0)
-    System.Memory (4.5.4)
     System.Reflection.Metadata (6.0)
       System.Collections.Immutable (>= 6.0)
     System.Runtime.CompilerServices.Unsafe (6.0)
