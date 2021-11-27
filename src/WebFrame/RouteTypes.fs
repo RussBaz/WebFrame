@@ -167,7 +167,7 @@ module RouteDef =
         Host = []
         PreConfig = id
         PostConfig = id
-        HttpHandler = fun _ -> task { return EndResponse }
+        HttpHandler = fun _ _ -> task { return EndResponse }
         ErrorHandlers = []
         Metadata = [] }
     
@@ -191,6 +191,11 @@ module RouteDef =
     let createWithHandler p h = p |> create |> handler h |> name ( p.ToString () )
     
 type Routes = Dictionary<RoutePattern, RouteDef>
+
+type RouteDescription ( route: RouteDef ) =
+    member val Name = route.Name
+    member val Pattern = route.Pattern
+    member val Description = route.Description
 
 type IRouteDescriptorService =
     abstract member All: unit -> RouteDef list

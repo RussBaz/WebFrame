@@ -3,6 +3,7 @@ module WebFrame.Http
 open System
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Http
+open WebFrame.Configuration
 
 type HttpMethod =
     | CONNECT
@@ -34,8 +35,8 @@ type HttpWorkload =
     | FileResponse of string
     | JsonResponse of obj
     
-type HttpHandler = HttpContext -> HttpWorkload
-type TaskHttpHandler = HttpContext -> Task<HttpWorkload>
+type HttpHandler = SystemDefaults -> HttpContext -> HttpWorkload
+type TaskHttpHandler = SystemDefaults -> HttpContext -> Task<HttpWorkload>
 
-type ErrorHandler = Exception -> HttpContext -> HttpWorkload option
-type TaskErrorHandler = Exception -> HttpContext -> Task<HttpWorkload option>
+type ErrorHandler = SystemDefaults -> Exception -> HttpContext -> HttpWorkload option
+type TaskErrorHandler = SystemDefaults -> Exception -> HttpContext -> Task<HttpWorkload option>

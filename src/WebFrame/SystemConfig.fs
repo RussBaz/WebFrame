@@ -102,7 +102,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                 match h with
                 | [] -> return None
                 | head::tail ->
-                    match! head ex context with
+                    match! head defaultConfig ex context with
                     | Some r -> return Some r
                     | None -> return! handleExceptions ex context tail
             }
@@ -110,7 +110,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
             // Calling a handler and trying to catch expected exceptions
             let callHandlerWith ( context: HttpContext ) = task {
                 try
-                    return! h context
+                    return! h defaultConfig context
                 with
                 | ex ->
                     let eh = eh |> List.rev
@@ -192,9 +192,9 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
             | h -> endpoint.RequireHost ( h |> Array.ofList )
             
         let setupMetadata ( endpoint: IEndpointConventionBuilder ) =
-            match route.Metadata with
-            | [] -> endpoint
-            | h -> endpoint.WithMetadata ( h |> Array.ofList )
+            let descriptor = RouteDescription route :> Object
+            let metadata = descriptor :: route.Metadata |> Array.ofList
+            endpoint.WithMetadata metadata
         
         let setup =
             createEndpoint

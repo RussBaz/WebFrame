@@ -6,6 +6,8 @@ open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 
 open Microsoft.Extensions.Configuration
+
+open Microsoft.Extensions.Logging
 open WebFrame.ConfigParts
 open WebFrame.Configuration
 open WebFrame.Http
@@ -18,7 +20,11 @@ open WebFrame.QueryParts
 open WebFrame.RouteParts
 open WebFrame.RouteTypes
     
-type RequestServices ( ctx: HttpContext ) =
+type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) =
+    let endpoint = ctx.GetEndpoint ()
+    let metadata = endpoint.Metadata
+    let routeDescription = metadata.GetMetadata<RouteDescription> ()
+    
     member val Context = ctx
     member val Path = RequestPathProperties ctx.Request    
     member val Route = RouteParameters ctx.Request
@@ -52,12 +58,18 @@ type RequestServices ( ctx: HttpContext ) =
     member this.File ( name: string, contentType: string ) =
         this.ContentType <- contentType
         this.File name
-    member _.GetEndpoint () = ctx.GetEndpoint ()
+    member val Endpoint = endpoint
+    member val RouteDescription = routeDescription
     member _.StatusCode with set v = ctx.Response.StatusCode <- v
     member this.ContentType
         with get () = this.Headers.Get "Content-Type" ""
         and set v = this.Headers.Set "Content-Type" [ v ]
-    member this.Log = Logger ( this.GetService (), "Local" )
+    member this.Log =
+        let category = defaults |> SystemDefaults.getLoggerNameForCategory routeDescription.Name
+        Logger ( this.GetService (), category )
+    member this.LoggerFor ( categoryName: string ) =
+        let f = this.GetService<ILoggerFactory> ()
+        f.CreateLogger categoryName
     member _.EnableBuffering () = ctx.Request.EnableBuffering ()
         
 type ServicedHandler = RequestServices -> HttpWorkload

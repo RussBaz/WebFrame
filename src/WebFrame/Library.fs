@@ -15,7 +15,7 @@ open WebFrame.Services
 open WebFrame.SystemConfig
 
     
-type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
+type AppModule ( prefix: string ) =
     let routes = Routes ()
     let modules = Dictionary<string, AppModule> ()
     let errorHandlers = List<TaskErrorHandler> ()
@@ -24,7 +24,7 @@ type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
         if routes.ContainsKey route then
             raise ( DuplicateRouteException ( route.ToString () ) )
             
-        let h: TaskHttpHandler = fun ctx -> ctx |> RequestServices |> handler
+        let h: TaskHttpHandler = fun config ctx -> ( ctx, config ) |> RequestServices |> handler
         
         let routeDef = RouteDef.createWithHandler route h
             
@@ -33,10 +33,6 @@ type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
     let addModule name ( m: #AppModule ) =
         if modules.ContainsKey name then
             raise ( DuplicateModuleException name )
-        
-        if m.Defaults <> defaultConfig then
-            let t = m.GetType ()
-            raise ( DifferentModuleDefaultsException ( name, t.Name ))
             
         modules.[ name ] <- m
         
@@ -50,7 +46,7 @@ type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
         r |> RouteDef.prefixWith prefix |> RouteDef.onErrors ( List.ofSeq errorHandlers )
     
     let updateModuleRoute ( moduleName: string ) ( r: KeyValuePair<RoutePattern, RouteDef> ) =
-        r.Value |> RouteDef.name $"{moduleName}:{r.Value.Name}"
+        r.Value |> RouteDef.name $"{moduleName}.{r.Value.Name}"
         
     let collectModuleRoutes ( i: KeyValuePair<string, AppModule> ) =
         i.Value.CollectRoutes ()
@@ -59,8 +55,6 @@ type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
     let getLocalRoutes () = routes |> Seq.map ( fun i -> i.Value )
     let getInnerRoutes () = modules |> Seq.collect collectModuleRoutes
     let preprocessRoutes ( r: RouteDef seq ) = r |> Seq.map preprocessRoute
-    
-    new ( prefix: string ) = AppModule ( prefix, SystemDefaults.standard )
     
     member _.Item
         with set ( index: RoutePattern ) ( value: TaskServicedHandler ) = value |> addRoute index
@@ -124,10 +118,9 @@ type AppModule ( prefix: string, defaultConfig: SystemDefaults ) =
         
         result
     member this.Errors with set h = h |> errorHandlers.Add
-    member internal _.Defaults = defaultConfig
 
 type App ( defaultConfig: SystemDefaults ) =
-    inherit AppModule ( "", defaultConfig )
+    inherit AppModule ""
     let args = defaultConfig.Args
     let mutable host = None
     
@@ -169,18 +162,18 @@ type App ( defaultConfig: SystemDefaults ) =
         let host = this.GetHostBuilder true
         host.StartAsync ()
     
-    member val Logger =
+    member val Log =
         let f = defaultConfig.LoggerHostFactory
         let name = defaultConfig |> SystemDefaults.getGlobalLoggerName
         Logger ( f, name )
 
 module Error =
     let onTask<'T when 'T :> exn> ( e: ServicedTaskErrorHandler<'T> ) : TaskErrorHandler =
-        fun ( ex: Exception ) ( c: HttpContext ) ->
+        fun ( configs: SystemDefaults ) ( ex: Exception ) ( c: HttpContext ) ->
             task {
                 match ex with
                 | :? 'T as ex ->
-                    let! r = e ex ( RequestServices c )
+                    let! r = e ex ( RequestServices ( c, configs ) )
                     return Some r
                 | _ ->
                     return None

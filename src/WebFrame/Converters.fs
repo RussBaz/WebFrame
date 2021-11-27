@@ -25,6 +25,3 @@ let convertTo<'T> ( data: string ) =
     | :? FormatException
     | :? OverflowException
     | :? ArgumentNullException -> None
-
-let orElse<'T> ( defaultValue: 'T ) ( data: 'T option ) =
-    data |> Option.defaultValue defaultValue

@@ -19,8 +19,19 @@ type MyRecord = {
     Name: string
     Position: int
 }
-
 let app = App ()
+
+let api = AppModule "/api"
+api.Get "/log" <- fun serv ->
+    serv.Log.Information "Test Log"
+    
+    let description = serv.RouteDescription
+    
+    serv.Log.Information $"Name: {description.Name}"
+    
+    serv.EndResponse ()
+
+app.Log.Information "Hello"
 
 app.Config.[ "hello" ] <- "World"
 
@@ -41,10 +52,16 @@ app.PostTask "/guid" <- fun serv -> task {
     return serv.EndResponse {| Result = field |}
 }
 
-app.Get "/log" <- fun serv ->
+app.Get "/log/{groupId:int?}" <- fun serv ->
     serv.Log.Information "Test Log"
     
+    let description = serv.RouteDescription
+    
+    serv.Log.Information $"Name: {description.Name}"
+    
     serv.EndResponse ()
+    
+app.Module "api" <- api
 
 [<SetUp>]
 let Setup () =
@@ -118,8 +135,7 @@ let ``Logging works as expected`` () = task {
     use client = server.GetTestClient ()
     
     let! _ = client.GetAsync "/log"
-    let! _ = client.GetAsync "/log"
-    let! _ = client.GetAsync "/log"
+    let! _ = client.GetAsync "/api/log"
     
     return ()
 }

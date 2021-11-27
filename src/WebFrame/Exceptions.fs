@@ -48,6 +48,3 @@ type DuplicateRouteException ( routePattern: string ) =
     
 type DuplicateModuleException ( name: string ) =
     inherit ServerException $"Could not register a module '{name}'. The module with such a name is already registered."
-    
-type DifferentModuleDefaultsException ( name: string, className: string ) =
-    inherit ServerException $"Could not register a module '{name}' [{className}]. Local defaults do not match global defaults."
