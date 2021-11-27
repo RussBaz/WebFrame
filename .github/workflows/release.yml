@@ -42,7 +42,7 @@ jobs:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     strategy:
       matrix:
-        dotnet: [ '5.0.x' ]
+        dotnet: [ '6.0.x' ]
 
     steps:
       - uses: actions/checkout@v2
@@ -75,7 +75,7 @@ jobs:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     strategy:
       matrix:
-        dotnet: [ '5.0.x' ]
+        dotnet: [ '6.0.x' ]
 
     steps:
       - uses: actions/checkout@v2

@@ -26,6 +26,8 @@ F# framework for rapid prototyping with ASP.NET Core.
     * [Body Parts](#body-parts)
       * [Form](#form)
       * [Json](#json)
+    * [Request Logging](#request-logging)
+  * [Host Logging](#host-logging)
   * [System Configuration](#system-configuration)
   * [Request Helpers](#request-helpers)
   * [Modules](#modules)
@@ -68,7 +70,7 @@ Therefore, explicit is better than implicit but the speed of prototyping must al
 * And finally, a beautiful code (in my eyes) is a better code.
 
 ## Setup
-Before you begin, make sure that [.NET](https://dotnet.microsoft.com/download) 5.0+ is installed and reachable from your terminal (i.e. it is present in the Path environment variable)
+Before you begin, make sure that [.NET](https://dotnet.microsoft.com/download) 6.0+ is installed and reachable from your terminal (i.e. it is present in the Path environment variable)
 ### For the first timers
 For those who just start with F#, I recommend starting with the following website ['F# for Fun and Profit: F# syntax in 60 seconds'](https://fsharpforfunandprofit.com/posts/fsharp-in-60-seconds/).
 
@@ -653,6 +655,8 @@ app.Get "/" <- fun serv ->
 #### Body Parts
 ##### Form
 ##### Json
+#### Request Logging
+### Host Logging
 ### System Configuration
 ### Request Helpers
 ### Modules
