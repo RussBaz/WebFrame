@@ -418,10 +418,25 @@ serv.ContentType <- "text/plain"
 serv.GetService<IRandomService> ()
 
 // Get the ASP.NET Core endpoint associated with this request
-serv.GetEndpoint ()
+serv.GetEndpoint
+
+// Get the description of the currently taken route
+serv.RouteDescription
+
+// Possible properties
+serv.RouteDescription.Name
+serv.RouteDescription.Pattern
+serv.RouteDescription.Description
 
 // Enable request buffering in ASP.NET Core
 serv.EnableBuffering ()
+
+// Get ILogger for a category called "MyLogCategory"
+serv.LoggerFor "MyLogCategory"
+
+// Get simple Logger for the current request
+// Check Request Logging for further details
+serv.Log
 
 // HttpWorkload helpers
 // Must be the final result returned by the handler
