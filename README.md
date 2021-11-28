@@ -668,6 +668,20 @@ app.Get "/" <- fun serv ->
     serv.EndResponse ()
 ```
 #### Body Parts
+The body parts services allow quick parsing and validation of different types of request bodies during the request handling.
+```F#
+// If you expect a form encoded body, use the following
+serv.Body.Form
+
+// If you expect a json encoded body, use this
+serv.Body.Json
+
+// In case you need to read a raw body as a stream
+serv.Body.Raw
+
+// or if you want to get a body pipe reader
+serv.Body.RawPipe
+```
 ##### Form
 ##### Json
 #### Request Logging

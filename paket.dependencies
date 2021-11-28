@@ -5,7 +5,7 @@ framework: net6.0
 
 nuget FSharp.Core >= 6.0
 
-nuget Newtonsoft.Json ~> 13.0
+nuget Newtonsoft.Json >= 13.0.1 < 14
 
 nuget Microsoft.AspNetCore.TestHost ~> 6.0
 
