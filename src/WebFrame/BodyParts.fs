@@ -102,9 +102,9 @@ type FormEncodedBody ( req: HttpRequest ) =
         |> Option.map ( List.map Option.get )
         |> Option.bind ( fun i -> if i.Length = 0 then None else Some i )
         
-    member this.Count<'T when 'T : equality> ( name: string ) : int =
+    member this.Count ( name: string ) : int =
         name
-        |> this.All<'T>
+        |> this.All<_>
         |> List.length
         
     member _.Raw with get () = try getForm () |> Some with | :? MissingRequiredFormException -> None

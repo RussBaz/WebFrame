@@ -683,6 +683,85 @@ serv.Body.Raw
 serv.Body.RawPipe
 ```
 ##### Form
+Services for dealing with form encoded bodies
+```F#
+app.Post "/resource" <- fun serv ->
+    // Checking if the Content Type header is set properly on the request
+    let isPresent = serv.Body.Form.IsPresent
+
+    // trying to read the "MyField" field from the request body
+    // returns a string optional
+    // only fails if the field cannot be found
+    // returns the first field matching the name if multiple are present
+    let f = serv.Body.Form.String "MyField"
+    
+    // It will take the first matching field and it will try to parse it as int
+    // It raises MissingRequiredFormException if the request does not have a valid form encoded body
+    // Or raises MissingRequiredJsonFieldException if the field cannot be found or parsed
+    let f = serv.Body.Form.Required<int> "MyField"
+    
+    // The same as above but does not raise any exceptions on failure
+    // If the form or field are missing, or if the field cannot be parsed,
+    // then None is returned
+    let f = serv.Body.Form.Optional<int> "MyField"
+    
+    // If the field cannot be read, then returns a default value
+    let f = serv.Body.Form.Get "MyField" 42
+    
+    // Returns all the found "MyFIeld" fields and parses them into int
+    // If any of them fails, then returns an empty list
+    // If also returns an empty list if the form itself is not found
+    let fields = serv.Body.Form.All<int> "MyField"
+    
+    // The same as above but leaves all the values as strings
+    // It cannot fail due to parsing errors
+    let fields = serv.Body.Form.AllString "MyField"
+    
+    // It will take all the matching fields and it will try to parse them as int
+    // It raises MissingRequiredFormException if the request does not have a valid form encoded body
+    // Or raises MissingRequiredJsonFieldException if the field cannot be found
+    // It also raises MissingRequiredJsonFieldException if any of found fields cannot be parsed
+    let fields = serv.Body.Form.AllRequired<int> "MyField"
+    
+    // The same as AllRequired but will return None on any failure
+    let fields = serv.Body.Form.AllOptional<int> "MyField"
+    
+    // Returns the number of times the field has appeared in the form
+    // Returns zero if the form is missing.
+    let count = serv.Body.Form.Count "MyField"
+    
+    // Getting the raw IFormCollection from the request
+    // If the form cannot be parsed, then returns None
+    let form = serv.Body.Form.Raw
+    
+    // If the form has files, they can be accessed here
+    // Returns None if the form is missing
+    // Always present otherwise even if no files are available
+    let files = serv.Body.Form.Files
+    
+    // TODO: make retuned files unwrapped by the next release
+    // TODO: it should only fail when the Required method is called
+    
+    // Unwrapping option for simplicity
+    // Will throw Null Exceptions if None!
+    let files = files.Value
+    
+    // Getting the list of all provided files
+    // returns IFormFile list
+    let f = files.All ()
+    
+    // Getting the file descriptor from the form
+    // Raises MissingRequiredFormFileException if the expected filename is not found
+    let f = files.Required "MyFileName"
+    
+    // The same as above but returns None on failure
+    let f = files.Optional "MyFileName"
+    
+    // Returns the number of files received in the form
+    let fileCount = files.Count
+    
+    serv.EndResponse ()
+```
 ##### Json
 #### Request Logging
 ### Host Logging
