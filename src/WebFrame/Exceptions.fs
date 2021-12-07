@@ -48,3 +48,6 @@ type DuplicateRouteException ( routePattern: string ) =
     
 type DuplicateModuleException ( name: string ) =
     inherit ServerException $"Could not register a module '{name}'. The module with such a name is already registered."
+    
+type HostNotReadyException () =
+    inherit ServerException $"Cannot access the IHost before it is built."

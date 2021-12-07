@@ -270,6 +270,14 @@ let app = App defaults
 let defaults = { defaults with Args = args }
 let app = App defaults
 
+// Lastly, if your app needs an access to dependency injection outside of request
+// for example for writing an extension,
+// you can request an IServiceProvider from the app directly
+// The app has to be built when the method is requested
+// If the app is rebuilt after requesting the provider,
+// just call the method again to receive a fresh copy
+let serviceProvider = app.GetServiceProvider ()
+
 // For additional options for adjusting the defaults,
 // please check the configuration section of the docs
 ```

@@ -140,12 +140,27 @@ type App ( defaultConfig: SystemDefaults ) =
             this.Services.CreateTestBuilder args
         else
             this.Services.CreateHostBuilder args
-    
-    member this.Build () =
-        let builder = this.GetHostBuilder ()
+            
+    member private this.BuildHost ( builder: IHostBuilder ) : IHost =
         let h = builder.Build ()
         host <- Some h
         h
+            
+    member private this.BuildTest () : IHost =
+        this.GetHostBuilder true // Pass true to enable the test server
+        |> this.BuildHost
+            
+    member this.GetServiceProvider () : IServiceProvider =
+        let h: IHost =
+            match host with
+            | Some h -> h
+            | None -> raise ( HostNotReadyException () )
+            
+        h.Services
+    
+    member this.Build () : IHost =
+        this.GetHostBuilder ()
+        |> this.BuildHost
         
     member this.Run () =
         let host = host |> Option.defaultValue ( this.Build () )
@@ -155,12 +170,14 @@ type App ( defaultConfig: SystemDefaults ) =
         this.Config.[ "urls" ] <- urls |> String.concat ";"
         
         let host = this.Build ()
-        
         host.Run ()
         
     member this.TestServer () =
-        let host = this.GetHostBuilder true
-        host.StartAsync ()
+        let host = this.BuildTest ()
+        task {
+            do! host.StartAsync ()
+            return host
+        }
     
     member val Log =
         let f = defaultConfig.LoggerHostFactory

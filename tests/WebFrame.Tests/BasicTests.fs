@@ -4,12 +4,14 @@ open System
 open System.Net
 open System.Net.Http
 
+open Microsoft.Extensions.Configuration
 open NUnit.Framework
 open FsUnitTyped
 
 open Microsoft.AspNetCore.TestHost
 
 open WebFrame
+open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
 open type Endpoints.Helpers
@@ -139,4 +141,53 @@ let ``Logging works as expected`` () = task {
     let! _ = client.GetAsync "/api/log"
     
     return ()
+}
+
+[<Test>]
+let ``Verifying the IServiceProvider getter method logic`` () = task {
+    let expectedResponse = "Hello World!"
+    
+    // Creating a local app instance in order to avoid conflicts with other tests
+    let app = App ()
+    app.Get "/" <- always expectedResponse
+    
+    let getServiceProvider = app.GetServiceProvider
+    
+    fun _ -> getServiceProvider () |> ignore
+    |> shouldFail<HostNotReadyException>
+    
+    app.Build () |> ignore
+    let a1 = getServiceProvider ()
+    let h1 = a1.GetHashCode ()
+    
+    app.Build () |> ignore
+    let a2 = getServiceProvider ()
+    let h2 = a2.GetHashCode ()
+    
+    h1 |> shouldNotEqual h2
+    
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    content |> shouldEqual expectedResponse
+    
+    let a3 = getServiceProvider ()
+    let h3 = a3.GetHashCode ()
+    
+    h3 |> shouldNotEqual h1
+    h3 |> shouldNotEqual h2
+}
+
+[<Test>]
+let ``Confirming that the Service Provider returned from App works`` () = task {
+    use! server = app.TestServer ()
+    let serviceProvider = app.GetServiceProvider ()
+    let t = typeof<IConfiguration>
+    let confService = serviceProvider.GetService t :?> IConfiguration
+    
+    confService.[ "Hello" ] |> shouldEqual "World"
 }

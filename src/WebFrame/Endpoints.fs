@@ -4,8 +4,10 @@ open WebFrame.Http
 open WebFrame.Services
     
 type Helpers () =
+    static member always ( h: string ) = fun _ -> TextResponse h
     static member always ( h: HttpWorkload ) = fun _ -> h
     static member always ( h: unit->HttpWorkload ) = fun _ -> h ()
+    static member alwaysTask ( h: string ) = fun _ -> task { return TextResponse h }
     static member alwaysTask ( h: HttpWorkload ) = fun _ -> task { return h }
     static member alwaysTask ( h: unit->HttpWorkload ) = fun _ -> task { return h () }
     static member page ( p: string ) =
