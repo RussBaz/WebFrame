@@ -691,7 +691,7 @@ serv.Body.Raw
 serv.Body.RawPipe
 ```
 ##### Form
-Services for dealing with form encoded bodies
+Services for dealing with form encoded bodies.
 ```F#
 app.Post "/resource" <- fun serv ->
     // Checking if the Content Type header is set properly on the request
@@ -771,6 +771,76 @@ app.Post "/resource" <- fun serv ->
     serv.EndResponse ()
 ```
 ##### Json
+Services for dealing with JSON encoded bodies.
+```F#
+app.PostTask "/resource" <- fun serv -> task {
+    // Reading a body and parsing as a specified type, even an anonymous one
+    // If the body cannot does not match they type, ewhether missing or additional properties are found,
+    // MissingRequiredJsonException is raised
+    let! data = serv.Body.Json.Exact<{| Name: string; Age: int |}> ()
+    
+    // Alternatively, you can pass either a json path string
+    // or a simplified Newtonsoft.Json query syntax
+    // to query the body field by field
+    
+    // Here we are getting a string option
+    // If the Json body is missing or the field is missing
+    // it will return None
+    
+    let! data = serv.Body.Json.String "$.Name"
+    let! data = serv.Body.Json.String "Name"
+    
+    // You can provide a default value for the field
+    let! data = serv.Body.Json.Get "Name" "Default Value"
+    
+    // If the query cannot return the field
+    // Then the MissingRequiredJsonFieldException is raised
+    // If the Json body itself cannot be parsed,
+    // then MissingRequiredJsonException is raised
+    let! data = serv.Body.Json.Required<int> "Age"
+    
+    // The same as above but errors return None instead
+    let! data = serv.Body.Json.Optional<int> "Age"
+    
+    // If you want to return multiple results qwith a single query
+    // If any found field fails to parae,
+    // it returns an empty list
+    let! data = serv.Body.Json.All<int> "$.Points[:].X"
+    // This was a finctional query to return property X from every object in the array Points as a list
+    
+    // The same as above but it cannot fail due to parsing errors
+    // as it returns a list of strings
+    // it returns an empty list in case of errors
+    let! data = serv.Body.Json.AllString "$.Points[:].X"
+    
+    // If any field fails to parse, then
+    // MissingRequiredJsonFieldException is raised
+    // if the json body cannot be parsed, then
+    // MissingRequiredJsonException is raised
+    let! data = serv.Body.Json.AllRequired<int> "$.Points[:].X"
+    
+    // The same as above but it returns None if any error is encountered
+    let! data = serv.Body.Json.AllOptional<int> "$.Points[:].X"
+    
+    // Returns the number of fields found to satisfy the query
+    // It does not take any type parsing into an account
+    // Also, if the json encoded body is missing,
+    // then it returns 0
+    let! count = serv.Body.Json.Count "$.Points[:].X"
+    
+    // If you need a raw JObject afor manual processing
+    // then you should use this method
+    let! j = serv.Body.Json.Raw "Points"
+    
+    // Confirms if the correct Content Type is received
+    let isJson = serv.Body.Json.IsJsonContentType
+    
+    // Confirms if the Json body is a valid json by parsing it into the memory
+    let! isJson = serv.Body.Json.IsPresent ()
+    
+    return serv.EndResponse ()
+}
+```
 #### Request Logging
 ### Host Logging
 ### System Configuration

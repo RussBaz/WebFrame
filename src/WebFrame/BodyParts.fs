@@ -244,17 +244,13 @@ type JsonEncodedBody ( req: HttpRequest ) =
         | :? MissingRequiredJsonFieldException -> return None
     }
     
-    member this.All<'T> ( path: string ) : Task<'T list> = this.GetFields path
-    
-    member this.AllString ( path: string ) = task {
-        let! j = getJson ()
+    member this.All<'T> ( path: string ) : Task<'T list> = task {
+        let! data = path |> this.AllOptional
         
-        return
-            path
-            |> j.SelectTokens
-            |> Seq.map ( fun i -> i.ToString () )
-            |> List.ofSeq
+        return data |> Option.defaultValue []
     }
+    
+    member this.AllString ( path: string ) = this.All<string> path
 
     member this.AllRequired<'T> ( path: string ) = task {
         try
@@ -276,7 +272,7 @@ type JsonEncodedBody ( req: HttpRequest ) =
     }
 
     member this.Count ( path: string ) : Task<int> = task {
-        let! v = this.All path
+        let! v = this.AllString path
         return v.Length
     }
     
