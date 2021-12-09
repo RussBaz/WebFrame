@@ -278,6 +278,15 @@ let app = App defaults
 // just call the method again to receive a fresh copy
 let serviceProvider = app.GetServiceProvider ()
 
+// It is wrapped in DefaultServiceProvider class
+// Raises MissingRequriedDependencyException on error
+let s = serviceProvider.Required<IRandomService> ()
+// Returns None on missing dependency
+let s = serviceProvider.Optional<IRandomService> ()
+// You can also provide a function returning a default implementation
+// if the service is missing for any reason
+let s = serviceProvider.Get<IRandomService> ServiceConstructor
+
 // For additional options for adjusting the defaults,
 // please check the configuration section of the docs
 ```
@@ -423,7 +432,13 @@ serv.ContentType
 serv.ContentType <- "text/plain"
 
 // Get ASP.NET Core service
-serv.GetService<IRandomService> ()
+// Throws MissingRequiredDependencyException on failure
+serv.Services.Required<IRandomService> ()
+// Returns optional instead of raising exceptions
+serv.Services.Optional<IRandomService> ()
+// If it fails to find registered service, then
+// it returns the result of the default providing function
+serv.Services.Get<IRandomService> RandomService
 
 // Get the ASP.NET Core endpoint associated with this request
 serv.GetEndpoint
@@ -507,7 +522,7 @@ app.Get "/resource/{id:guid}/{property?}" <- fun serv ->
     // then MissingRequiredRouteParameterException is raised
     let resId = serv.Route.Required<Guid> "id"
     // Will return a string optional with the value of "property" route segment
-    let property = serv.Route.Optional<srting> "property"
+    let property = serv.Route.Optional<string> "property"
     // Alternatively, you can specify the default value for the optional segment inline
     let property = serv.Route.Get "property" "none"
     // If you just want a string option without any parsing, then use:
@@ -842,7 +857,37 @@ app.PostTask "/resource" <- fun serv -> task {
 }
 ```
 #### Request Logging
+Services for dealing with logging during the request handling.
+```F#
+app.Get "/route" <- fun serv ->
+    // Get ILogger for a category called "MyLogCategory"
+    let logger = serv.LoggerFor "MyLogCategory"
+    
+    // You can use the default and simplified logger
+    serv.Log.Information "Info"
+    serv.Log.Warning "Warn"
+    serv.Log.Error "Error"
+    serv.Log.Critical "Crit"
+    serv.Log.Debug "Debug"
+    serv.Log.Trace "Trace"
+    
+    serv.EndResponse ()
+```
 ### Host Logging
+If your app requires an access to an inbuilt ASP Net Core service provider outside of the request handler (for example for your extension), then you can access the Service Provider from the app instance itself.
+```F#
+// Acquiring the DefaultServiceProvider wrapper
+let serviceProvider = app.GetServiceProvider ()
+
+// It is wrapped in DefaultServiceProvider class
+// Raises MissingRequriedDependencyException on error
+let s = serviceProvider.Required<IRandomService> ()
+// Returns None on missing dependency
+let s = serviceProvider.Optional<IRandomService> ()
+// You can also provide a function returning a default implementation
+// if the service is missing for any reason
+let s = serviceProvider.Get<IRandomService> ServiceConstructor
+```
 ### System Configuration
 ### Request Helpers
 ### Modules

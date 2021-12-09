@@ -2,6 +2,7 @@ STORAGE: NONE
 RESTRICTION: == net6.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
+    DotLiquid (2.2.585)
     FSharp.Core (6.0.1)
     FsUnit (4.1)
       FSharp.Core (>= 5.0.2)

@@ -186,8 +186,7 @@ let ``Verifying the IServiceProvider getter method logic`` () = task {
 let ``Confirming that the Service Provider returned from App works`` () = task {
     use! server = app.TestServer ()
     let serviceProvider = app.GetServiceProvider ()
-    let t = typeof<IConfiguration>
-    let confService = serviceProvider.GetService t :?> IConfiguration
+    let confService = serviceProvider.Required<IConfiguration> ()
     
     confService.[ "Hello" ] |> shouldEqual "World"
 }

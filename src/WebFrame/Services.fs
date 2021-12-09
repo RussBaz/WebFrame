@@ -2,23 +2,21 @@ module WebFrame.Services
 
 open System.Threading.Tasks
 
-open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 
-open Microsoft.Extensions.Configuration
-
 open Microsoft.Extensions.Logging
+
 open WebFrame.ConfigParts
 open WebFrame.Configuration
 open WebFrame.Http
 open WebFrame.BodyParts
 open WebFrame.CookieParts
-open WebFrame.Exceptions
 open WebFrame.HeaderParts
 open WebFrame.Logging
 open WebFrame.QueryParts
 open WebFrame.RouteParts
 open WebFrame.RouteTypes
+open WebFrame.ServiceProvider
     
 type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) =
     let endpoint = ctx.GetEndpoint ()
@@ -32,24 +30,15 @@ type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) =
     member val Headers = Headers ( ctx.Request, ctx.Response )
     member val Cookies = Cookies ( ctx.Request, ctx.Response )
     member val Body = Body ctx.Request
+    member val Services = GenericServiceProvider ctx.RequestServices
     
-    member val AppRoutes = AllRoutes ( fun () ->
-        let t = typeof<IRouteDescriptorService>
-        match ctx.RequestServices.GetService t with
-        | null -> raise ( MissingDependencyException t.Name )
-        | s -> s :?> IRouteDescriptorService )
-    
-    member _.GetService<'T> () =
-        let t = typeof<'T>
-        match ctx.RequestServices.GetService t with
-        | null -> raise ( MissingDependencyException t.Name )
-        | s -> s :?> 'T
+    member this.AppRoutes = AllRoutes ( fun () -> this.Services.Required () )
         
     member _.Redirect ( url, permanent ) =
         ctx.Response.Redirect ( url, permanent )
         EndResponse
         
-    member this.Config = RuntimeConfigs ( this.GetService<IConfiguration> (), this.GetService<IWebHostEnvironment> () )
+    member this.Config = RuntimeConfigs ( this.Services.Required (), this.Services.Required () )
     member this.Redirect url = this.Redirect ( url, false )
     member _.EndResponse () = EndResponse
     member _.EndResponse ( t: string ) = TextResponse t
@@ -66,9 +55,9 @@ type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) =
         and set v = this.Headers.Set "Content-Type" [ v ]
     member this.Log =
         let category = defaults |> SystemDefaults.getLoggerNameForCategory routeDescription.Name
-        Logger ( this.GetService (), category )
+        Logger ( this.Services.Required (), category )
     member this.LoggerFor ( categoryName: string ) =
-        let f = this.GetService<ILoggerFactory> ()
+        let f = this.Services.Required<ILoggerFactory> ()
         f.CreateLogger categoryName
     member _.EnableBuffering () = ctx.Request.EnableBuffering ()
         

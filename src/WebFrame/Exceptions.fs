@@ -37,7 +37,7 @@ type MissingRequiredJsonException () =
 
 // Exceptions raised in response to incorrect app setup
 // Should result in app breaking on startup
-type MissingDependencyException ( dependencyName: string ) =
+type MissingRequiredDependencyException ( dependencyName: string ) =
     inherit ServerException $"Could not retrieve an object of type '%s{dependencyName}' from ASP.NET Core's dependency container."
     
 type MissingRequiredConfigException ( configName: string ) =

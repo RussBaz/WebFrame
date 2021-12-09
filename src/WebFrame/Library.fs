@@ -11,6 +11,7 @@ open WebFrame.Logging
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
+open WebFrame.ServiceProvider
 open WebFrame.Services
 open WebFrame.SystemConfig
 
@@ -150,13 +151,13 @@ type App ( defaultConfig: SystemDefaults ) =
         this.GetHostBuilder true // Pass true to enable the test server
         |> this.BuildHost
             
-    member this.GetServiceProvider () : IServiceProvider =
+    member this.GetServiceProvider () : GenericServiceProvider =
         let h: IHost =
             match host with
             | Some h -> h
             | None -> raise ( HostNotReadyException () )
             
-        h.Services
+        h.Services |> GenericServiceProvider
     
     member this.Build () : IHost =
         this.GetHostBuilder ()
