@@ -15,6 +15,18 @@ open WebFrame.ServiceProvider
 open WebFrame.Services
 open WebFrame.SystemConfig
 
+type Hooks<'T> ( app: 'T ) =
+    let mutable onStartHooks: ( 'T -> unit ) list = []
+    let mutable onStopHooks: ( 'T -> unit ) list = []
+    
+    member this.AddOnStartHook ( hook: 'T -> unit ) = onStartHooks <- hook :: onStartHooks
+    member _.AddOnStopHook ( hook: 'T -> unit ) = onStopHooks <- hook :: onStopHooks
+    
+    member _.ClearOnStartHooks () = onStartHooks <- []
+    member _.ClearOnStopHooks () = onStopHooks <- []
+    
+    member internal this.RunOnStartHooks () = onStartHooks |> List.iter ( fun i -> i app )
+    member internal _.RunOnStopHooks () = onStopHooks |> List.iter ( fun i -> i app )
     
 type AppModule ( prefix: string ) =
     let routes = Routes ()
@@ -120,7 +132,7 @@ type AppModule ( prefix: string ) =
         result
     member this.Errors with set h = h |> errorHandlers.Add
 
-type App ( defaultConfig: SystemDefaults ) =
+type App ( defaultConfig: SystemDefaults ) as app =
     inherit AppModule ""
     let args = defaultConfig.Args
     let mutable host = None
@@ -130,6 +142,7 @@ type App ( defaultConfig: SystemDefaults ) =
     
     member val Services = SystemSetup defaultConfig
     member val Config = ConfigOverrides defaultConfig
+    member val Hooks = Hooks app
     
     member private this.GetHostBuilder ( ?testServer: bool ) =
         let testServer = defaultArg testServer false
@@ -165,19 +178,30 @@ type App ( defaultConfig: SystemDefaults ) =
         
     member this.Run () =
         let host = host |> Option.defaultValue ( this.Build () )
-        host.Run ()
+        try
+            this.Hooks.RunOnStartHooks ()
+            host.Run ()
+        finally
+            this.Hooks.RunOnStopHooks ()
         
     member this.Run ( urls: string list ) =
         this.Config.[ "urls" ] <- urls |> String.concat ";"
-        
         let host = this.Build ()
-        host.Run ()
+        try
+            this.Hooks.RunOnStartHooks ()
+            host.Run ()
+        finally
+            this.Hooks.RunOnStopHooks ()
         
     member this.TestServer () =
         let host = this.BuildTest ()
         task {
-            do! host.StartAsync ()
-            return host
+            try
+                this.Hooks.RunOnStartHooks ()
+                do! host.StartAsync ()
+                return host
+            finally
+                this.Hooks.RunOnStopHooks ()
         }
     
     member val Log =

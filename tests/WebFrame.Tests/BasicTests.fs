@@ -190,3 +190,26 @@ let ``Confirming that the Service Provider returned from App works`` () = task {
     
     confService.[ "Hello" ] |> shouldEqual "World"
 }
+
+[<Test>]
+let ``Testing basic hooks`` () = task {
+    let expectedResponse = "Hello World!"
+    let app = App ()
+    app.Get "/" <- always expectedResponse
+    
+    let mutable onStartHookRan = false
+    let mutable onStopHookRan = false
+    
+    fun _ -> onStartHookRan <- true
+    |> app.Hooks.AddOnStartHook
+    
+    fun _ -> onStopHookRan <- true
+    |> app.Hooks.AddOnStopHook
+    
+    use! server = app.TestServer ()
+    
+    do! server.StopAsync ()
+    
+    onStartHookRan |> shouldEqual true
+    onStartHookRan |> shouldEqual true
+}

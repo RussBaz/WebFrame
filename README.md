@@ -278,14 +278,14 @@ let app = App defaults
 // just call the method again to receive a fresh copy
 let serviceProvider = app.GetServiceProvider ()
 
-// It is wrapped in DefaultServiceProvider class
-// Raises MissingRequriedDependencyException on error
-let s = serviceProvider.Required<IRandomService> ()
-// Returns None on missing dependency
-let s = serviceProvider.Optional<IRandomService> ()
-// You can also provide a function returning a default implementation
-// if the service is missing for any reason
-let s = serviceProvider.Get<IRandomService> ServiceConstructor
+// If you need to execute something before and after the server runs
+// You can add on start and on stop hooks
+// The hook is a function that takes an instance of App and returns an unit
+app.Hooks.AddOnStartHook ( fun a -> () )
+app.Hooks.AddOnStopHook ( fun a -> () )
+// and you can clear them all with the following methods
+app.Hooks.ClearOnStartHooks ()
+app.Hooks.ClearOnStopHooks ()
 
 // For additional options for adjusting the defaults,
 // please check the configuration section of the docs
