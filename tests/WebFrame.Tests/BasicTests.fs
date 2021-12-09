@@ -14,6 +14,7 @@ open WebFrame
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
+open WebFrame.Templating
 open type Endpoints.Helpers
 
 type MyRecord = {
@@ -173,6 +174,8 @@ let ``Verifying the IServiceProvider getter method logic`` () = task {
     let! content = r.Content.ReadAsStringAsync ()
     
     r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/plain"
     content |> shouldEqual expectedResponse
     
     let a3 = getServiceProvider ()
@@ -212,4 +215,40 @@ let ``Testing basic hooks`` () = task {
     
     onStartHookRan |> shouldEqual true
     onStartHookRan |> shouldEqual true
+}
+
+[<Test>]
+let ``Testing basic DotLiquid templating `` () = task {
+    let oldEnv = Environment.GetEnvironmentVariable "ASPNETCORE_ENVIRONMENT"
+    Environment.SetEnvironmentVariable ( "ASPNETCORE_ENVIRONMENT", "Development" )
+    
+    let expectedContent = "<h1>Title</h1>\n<p>World</p>"
+    
+    let app = App ()
+    let templates = DotLiquidProvider.register app
+    
+    app.Services.ContentRoot <- __SOURCE_DIRECTORY__
+    app.Get "/" <- fun serv ->
+        templates.Render "./Index.liquid" {| Hello = "World" |}
+    
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/html"
+    content |> shouldEqual expectedContent
+    
+    let! r = client.GetAsync "/"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/html"
+    content |> shouldEqual expectedContent
+    
+    Environment.SetEnvironmentVariable ( "ASPNETCORE_ENVIRONMENT", oldEnv )
 }

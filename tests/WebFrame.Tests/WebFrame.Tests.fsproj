@@ -9,6 +9,8 @@
     <Compile Include="BasicTests.fs" />
     <Compile Include="Program.fs" />
     <Content Include="paket.references" />
+    <Content Include="Index.liquid" />
+    <Content Include="_Inner.liquid" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\WebFrame\WebFrame.fsproj" />

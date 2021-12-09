@@ -2,8 +2,8 @@ module WebFrame.SystemConfig
 
 open System
 open System.Collections.Generic
-
 open System.Threading.Tasks
+
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
@@ -13,6 +13,7 @@ open Microsoft.AspNetCore.TestHost
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
+open Microsoft.Extensions.Logging
 
 open Newtonsoft.Json
 
@@ -125,7 +126,14 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                         return!
                             match workload with
                             | EndResponse -> context.Response.CompleteAsync ()
-                            | TextResponse t -> context.Response.WriteAsync t
+                            | TextResponse t ->
+                                if String.IsNullOrEmpty context.Response.ContentType then
+                                    context.Response.ContentType <- "text/plain"
+                                context.Response.WriteAsync t
+                            | HtmlResponse t ->
+                                if String.IsNullOrEmpty context.Response.ContentType then
+                                    context.Response.ContentType <- "text/html"
+                                context.Response.WriteAsync t
                             | FileResponse f -> context.Response.SendFileAsync f
                             | JsonResponse data ->
                                 let output = JsonConvert.SerializeObject data

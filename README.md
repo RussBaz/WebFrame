@@ -298,7 +298,8 @@ How to process incoming requests
 // Internally, all the handlers are converted into TaskHttpHandler
 type HttpWorkload =
     | EndResponse            // ends the response processing
-    | TextResponse of string // the resonse body as string
+    | TextResponse of string // the resonse body as string, default content-type: text/plain
+    | HtmlResponse of string // the resonse body as string, default content-type: text/html
     | FileResponse of string // filename of the file to be returned
     | JsonResponse of obj    // an obj to be serialised and returned as json
 

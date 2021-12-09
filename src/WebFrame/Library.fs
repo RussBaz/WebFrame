@@ -143,6 +143,7 @@ type App ( defaultConfig: SystemDefaults ) as app =
     member val Services = SystemSetup defaultConfig
     member val Config = ConfigOverrides defaultConfig
     member val Hooks = Hooks app
+    member val Defaults = defaultConfig
     
     member private this.GetHostBuilder ( ?testServer: bool ) =
         let testServer = defaultArg testServer false

@@ -51,3 +51,6 @@ type DuplicateModuleException ( name: string ) =
     
 type HostNotReadyException () =
     inherit ServerException $"Cannot access the IHost before it is built."
+    
+type MissingTemplateException ( path: string ) =
+    inherit ServerException $"The template at \"{path}\" was not found."

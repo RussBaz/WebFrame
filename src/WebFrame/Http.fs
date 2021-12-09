@@ -32,6 +32,7 @@ type HttpMethod =
 type HttpWorkload =
     | EndResponse
     | TextResponse of string
+    | HtmlResponse of String
     | FileResponse of string
     | JsonResponse of obj
     
