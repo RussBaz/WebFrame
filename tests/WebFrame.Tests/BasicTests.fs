@@ -17,6 +17,8 @@ open WebFrame.RouteTypes
 open WebFrame.Templating
 open type Endpoints.Helpers
 
+open Helpers
+
 type MyRecord = {
     Id: Guid
     Name: string
@@ -217,19 +219,17 @@ let ``Testing basic hooks`` () = task {
     onStartHookRan |> shouldEqual true
 }
 
-[<Test>]
-let ``Testing basic DotLiquid templating `` () = task {
-    let oldEnv = Environment.GetEnvironmentVariable "ASPNETCORE_ENVIRONMENT"
-    Environment.SetEnvironmentVariable ( "ASPNETCORE_ENVIRONMENT", "Development" )
-    
-    let expectedContent = "<h1>Title</h1>\n<p>World</p>"
-    
+[<TestCase( "<h1>Title</h1>\n<p>World</p>", IncludePlatform="MacOsX" )>]
+[<TestCase( "<h1>Title</h1>\n<p>World</p>", IncludePlatform="Unix, Linux" )>]
+[<TestCase( "<h1>Title</h1>\r\n<p>World</p>", IncludePlatform="Win" )>]
+let ``Testing basic DotLiquid templating `` ( expectedContent:string ) = task {
+    use _ = new EnvVar ( "ASPNETCORE_ENVIRONMENT", "Development" )
     let app = App ()
     let templates = DotLiquidProvider.register app
     
     app.Services.ContentRoot <- __SOURCE_DIRECTORY__
     app.Get "/" <- fun serv ->
-        templates.Render "./Index.liquid" {| Hello = "World" |}
+        templates.Render "Index.liquid" {| Hello = "World" |}
     
     use! server = app.TestServer ()
     use client = server.GetTestClient ()
@@ -249,6 +249,4 @@ let ``Testing basic DotLiquid templating `` () = task {
     let ct = r.Content.Headers.ContentType.ToString ()
     ct |> shouldEqual "text/html"
     content |> shouldEqual expectedContent
-    
-    Environment.SetEnvironmentVariable ( "ASPNETCORE_ENVIRONMENT", oldEnv )
 }

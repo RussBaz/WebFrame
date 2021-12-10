@@ -1,4 +1,4 @@
-namespace WebFrame.Testss
+namespace WebFrame.Tests
 
 module Program =
 
