@@ -20,11 +20,11 @@
     <Compile Include="BodyParts.fs" />
     <Compile Include="ConfigParts.fs" />
     <Compile Include="ServiceProvider.fs" />
+    <Compile Include="Templating.fs" />
     <Compile Include="Services.fs" />
     <Compile Include="SystemConfig.fs" />
     <Compile Include="Endpoints.fs" />
     <Compile Include="Library.fs" />
-    <Compile Include="Templating.fs" />
     <Content Include="paket.references" />
     <Content Include="paket.template" />
     <Content Include="NUGET_README.md" />

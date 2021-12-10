@@ -225,11 +225,10 @@ let ``Testing basic hooks`` () = task {
 let ``Testing basic DotLiquid templating `` ( expectedContent:string ) = task {
     use _ = new EnvVar ( "ASPNETCORE_ENVIRONMENT", "Development" )
     let app = App ()
-    let templates = DotLiquidProvider.register app
     
     app.Services.ContentRoot <- __SOURCE_DIRECTORY__
     app.Get "/" <- fun serv ->
-        templates.Render "Index.liquid" {| Hello = "World" |}
+        serv.Page "Index.liquid" {| Hello = "World" |}
     
     use! server = app.TestServer ()
     use client = server.GetTestClient ()

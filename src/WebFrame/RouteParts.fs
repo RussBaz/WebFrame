@@ -42,12 +42,12 @@ type RouteParameters ( req: HttpRequest ) =
         
     member val Raw = req.RouteValues
     
-type AllRoutes ( init: unit -> IRouteDescriptorService ) =
+type AllRoutes ( routeDescriptor: Lazy<IRouteDescriptorService> ) =
     let mutable rootService = None
     member _.All () : RouteDef list =
         match rootService with
         | None ->
-            let v = init ()
+            let v = routeDescriptor.Value
             rootService <- Some v
             v.All ()
         | Some v ->
@@ -56,7 +56,7 @@ type AllRoutes ( init: unit -> IRouteDescriptorService ) =
     member _.Optional name : RouteDef option =
         match rootService with
         | None ->
-            let v = init ()
+            let v = routeDescriptor.Value
             rootService <- Some v
             v.TryGet name
         | Some v ->

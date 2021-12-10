@@ -8,9 +8,9 @@ open Microsoft.Extensions.Hosting
 open WebFrame.Exceptions
 open WebFrame.Converters
 
-type RuntimeConfigs ( conf: IConfiguration, env: IWebHostEnvironment ) =
+type RuntimeConfigs ( conf: Lazy<IConfiguration>, env: Lazy<IWebHostEnvironment> ) =
     member _.String ( name: string ) =
-        let r = conf.[ name ]
+        let r = conf.Value.[ name ]
         
         match box r with
         | null -> None
@@ -31,10 +31,10 @@ type RuntimeConfigs ( conf: IConfiguration, env: IWebHostEnvironment ) =
         |> this.String
         |> Option.bind convertTo<'T>
         
-    member _.Raw = conf
-    member val ApplicationName = env.ApplicationName
-    member val EnvironmentName = env.EnvironmentName
-    member _.IsDevelopment = env.IsDevelopment ()
-    member _.IsStaging = env.IsStaging ()
-    member _.IsProduction = env.IsProduction ()
-    member _.IsEnvironment name = env.IsEnvironment name
+    member _.Raw = conf.Value
+    member _.ApplicationName = env.Value.ApplicationName
+    member _.EnvironmentName = env.Value.EnvironmentName
+    member _.IsDevelopment = env.Value.IsDevelopment ()
+    member _.IsStaging = env.Value.IsStaging ()
+    member _.IsProduction = env.Value.IsProduction ()
+    member _.IsEnvironment name = env.Value.IsEnvironment name

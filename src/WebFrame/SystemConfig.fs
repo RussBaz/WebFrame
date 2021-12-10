@@ -21,10 +21,23 @@ open WebFrame.Configuration
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
+open WebFrame.Templating
 
 type ServiceSetup = IWebHostEnvironment -> IConfiguration -> IServiceCollection -> IServiceCollection
 type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> IApplicationBuilder
 type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
+
+type TemplatingSetup ( defaultConfig: SystemDefaults ) =
+    let defaultSetup = fun ( i: IServiceProvider ) ->
+        let loggerFactory = i.GetService<ILoggerFactory> ()
+        let env = i.GetService<IWebHostEnvironment> ()
+        DotLiquidTemplateService ( defaultConfig, loggerFactory, env )
+    let mutable userSetup = None
+    let getSetup () = userSetup |> Option.defaultValue defaultSetup
+    member val Setup = 0
+    member internal this.ConfigureServices: ServiceSetup = fun _ _ services ->
+        let setup = getSetup ()
+        services.AddSingleton<ITemplateRenderer, DotLiquidTemplateService> setup
     
 type SimpleRouteDescriptor ( routes: Routes ) =
     interface IRouteDescriptorService with
@@ -92,6 +105,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     let endpointSetup = List<EndpointSetup> ()
     let staticFilesSetup = StaticFilesSetup defaultConfig
     let configSetup = InMemoryConfigSetup defaultConfig
+    let templatingSetup = TemplatingSetup defaultConfig
     
     let mutable routes = Routes ()
     let mutable contentRoot = ""
@@ -242,6 +256,9 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                 fun _ -> SimpleRouteDescriptor routes )
             |> ignore
             
+            // Setting up the templating service
+            ( env, config, serv ) |||> templatingSetup.ConfigureServices |> ignore
+            
             ( env, config, serv ) |||> staticFilesSetup.ConfigureServices |> ignore
             
             // Slot for custom services
@@ -338,5 +355,6 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     member _.AfterEndpoints with set value = value |> afterEndpointSetup.Add
     member _.AfterApp with set value = value |> afterAppSetup.Add
     member _.Endpoint with set value = value |> endpointSetup.Add
-    member _.StaticFiles = staticFilesSetup
+    member val StaticFiles = staticFilesSetup
+    member val Templating = templatingSetup
     member _.ContentRoot with set value = contentRoot <- value

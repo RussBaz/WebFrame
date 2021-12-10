@@ -10,17 +10,20 @@ open Microsoft.Extensions.Logging
 open DotLiquid
 open DotLiquid.FileSystems
 
-open WebFrame
+open WebFrame.Configuration
 open WebFrame.Http
 open WebFrame.Exceptions
 
+type ITemplateCache =
+    abstract member Path: string
+    abstract member Value: Template
+
+type ITemplateRenderer =
+    abstract member Load: path: string -> unit
+    abstract member Render: path: string -> o: obj -> HttpWorkload
+
 type TemplateCache ( logger: ILogger, env: IWebHostEnvironment, path: string ) =
     let mutable template: Template option = None
-    
-    let update ( value: string ) =
-        let v = value |> Template.Parse
-        template <- Some v
-        v
 
     let load () =
         let fileProvider = env.ContentRootFileProvider
@@ -33,53 +36,37 @@ type TemplateCache ( logger: ILogger, env: IWebHostEnvironment, path: string ) =
         use stream = file.CreateReadStream ()
         use reader = new StreamReader ( stream )
         
-        reader.ReadToEnd ()
-        |> update
+        let t = reader.ReadToEnd () |> Template.Parse
+        template <- Some t
+        t
         
-    member this.Path = path
-    member this.Value =
-        match template with
-        | Some v -> v
-        | None -> load ()
+    interface ITemplateCache with
+        member this.Path = path
+        member this.Value =
+            match template with
+            | Some v -> v
+            | None -> load ()
 
-type DotLiquidTemplateService ( app: App ) =
-    let mutable env = None
-    let mutable logger = None
+type DotLiquidTemplateService ( defaults: SystemDefaults, loggerFactory: ILoggerFactory, env: IWebHostEnvironment ) =
+    let logger =
+        let loggerName = defaults |> SystemDefaults.getLoggerNameForCategory "DotLiquidTemplateService"
+        loggerFactory.CreateLogger loggerName
     let templates = Dictionary<string, TemplateCache> ()
     
-    let setup () =
-        let loggerPrefix = app.Defaults.LoggerPrefix |> fun i -> if i.Length > 0 then $"{i}." else ""
-        let loggerName = $"{loggerPrefix}DotLiquidTemplateService"
-        let serviceProvider = app.GetServiceProvider ()
-        let e = serviceProvider.Required<IWebHostEnvironment> ()
-        let lf = serviceProvider.Required<ILoggerFactory> ()
-        Template.FileSystem <- LocalFileSystem e.ContentRootPath
-        env <- Some e
-        logger <- loggerName |> lf.CreateLogger |> Some
-        e
-        
-    let getEnv () =
-        match env with
-        | Some e -> e
-        | None -> setup ()
-        
-    let getLogger () =
-        if logger.IsNone then setup () |> ignore
-        logger.Value
-
-    member _.Load ( path: string ) =
+    let load ( path: string ): ITemplateCache =
         match templates.TryGetValue path with
-        | true, v -> v
-        | _ ->
-            let t = TemplateCache ( getLogger(), getEnv (), path )
-            templates.[ path ] <- t
-            t
+            | true, v -> v
+            | _ ->
+                let t = TemplateCache ( logger, env, path )
+                templates.[ path ] <- t
+                t
+    
+    do Template.FileSystem <- LocalFileSystem env.ContentRootPath
 
-    member this.Render ( path: string ) ( o: obj ) =
-        let c = this.Load path
-        let t = c.Value
-        
-        o |> Hash.FromAnonymousObject |> t.Render |> HtmlResponse
-
-module DotLiquidProvider =
-    let register ( app: App ) = DotLiquidTemplateService app
+    interface ITemplateRenderer with
+        member _.Load ( path: string ) = load path |> ignore
+        member this.Render ( path: string ) ( o: obj ) =
+            let c = load path
+            let t = c.Value
+            
+            o |> Hash.FromAnonymousObject |> t.Render |> HtmlResponse

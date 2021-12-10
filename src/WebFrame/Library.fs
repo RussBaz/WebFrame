@@ -208,7 +208,7 @@ type App ( defaultConfig: SystemDefaults ) as app =
     member val Log =
         let f = defaultConfig.LoggerHostFactory
         let name = defaultConfig |> SystemDefaults.getGlobalLoggerName
-        Logger ( f, name )
+        Logger ( lazy f, name )
 
 module Error =
     let onTask<'T when 'T :> exn> ( e: ServicedTaskErrorHandler<'T> ) : TaskErrorHandler =
