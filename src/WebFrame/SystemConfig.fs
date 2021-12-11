@@ -28,27 +28,32 @@ type ServiceSetup = IWebHostEnvironment -> IConfiguration -> IServiceCollection 
 type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> IApplicationBuilder
 type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 
+type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> obj
+
 type TemplatingSetup ( defaultConfig: SystemDefaults ) =
-    let defaultSetup ( defaultConfig: SystemDefaults ) ( root: string ) ( i: IServiceProvider ) =
+    let defaultSetup: TemplateConfiguration = fun defaultConfig root i ->
         let loggerFactory = i.GetService<ILoggerFactory> ()
         let env = i.GetService<IWebHostEnvironment> ()
         
         DotLiquidTemplateService ( defaultConfig, root, loggerFactory, env )
-        :> obj
-    let mutable userSetup = None
+    let mutable userSetup: TemplateConfiguration option = None
     let getSetup ( defaultConfig: SystemDefaults ) ( root: string ) =
         let setup = userSetup |> Option.defaultValue defaultSetup
         setup defaultConfig root
     
     member val DefaultRenderer = defaultSetup
     member val TemplateRoot = "." with get, set
-    member _.Custom with set ( s: SystemDefaults -> string -> IServiceProvider -> obj ) = userSetup <- Some s
+    member val Enabled = true with get, set
+    member _.CustomConfiguration with set ( s: TemplateConfiguration ) = userSetup <- Some s
     
     member internal this.ConfigureServices: ServiceSetup = fun env _ services ->
-        let templateRoot = Path.Combine ( env.ContentRootPath, this.TemplateRoot ) |> Path.GetFullPath
-        let setup = getSetup defaultConfig templateRoot
-        let t = typeof<ITemplateRenderer>
-        services.AddSingleton ( t, setup )
+        if this.Enabled then
+            let templateRoot = Path.Combine ( env.ContentRootPath, this.TemplateRoot ) |> Path.GetFullPath
+            let setup = getSetup defaultConfig templateRoot
+            let t = typeof<ITemplateRenderer>
+            services.AddSingleton ( t, setup )
+        else
+            services
     
 type SimpleRouteDescriptor ( routes: Routes ) =
     interface IRouteDescriptorService with

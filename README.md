@@ -27,6 +27,7 @@ F# framework for rapid prototyping with ASP.NET Core.
       * [Form](#form)
       * [Json](#json)
     * [Request Logging](#request-logging)
+  * [DI Outside of Request](#di-outside-of-request)
   * [Host Logging](#host-logging)
   * [System Configuration](#system-configuration)
   * [Request Helpers](#request-helpers)
@@ -278,6 +279,10 @@ let app = App defaults
 // just call the method again to receive a fresh copy
 let serviceProvider = app.GetServiceProvider ()
 
+// To access the inbuilt logger before the host is built
+// For more details check the host logging section
+app.Log
+
 // If you need to execute something before and after the server runs
 // You can add on start and on stop hooks
 // The hook is a function that takes an instance of App and returns an unit
@@ -478,6 +483,18 @@ serv.Redirect ( "/", true )
 serv.File "myfile.txt"
 // Return a file "image.png" and set the content-type manually to "image/png"
 serv.File ( "image.png", "image/png" )
+
+// Template rendering response
+// Uses DotLiquid templating by default but can be replaced
+// The default template root is set to content root
+// For more information on DotLiquid, visit their website at:
+// dotliquidmarkup.org
+// https://github.com/dotliquid/dotliquid
+
+// To render a template and insert data into it,
+// use the following method:
+// It returns a HtmlWorkload with the template rendered as a string
+serv.Page "/path/from/template/root/to/template" {| Name = "John" |}
 
 // Return a text reponse
 serv.EndResponse "hello world"
@@ -874,7 +891,7 @@ app.Get "/route" <- fun serv ->
     
     serv.EndResponse ()
 ```
-### Host Logging
+### DI Outside of Request
 If your app requires an access to an inbuilt ASP Net Core service provider outside of the request handler (for example for your extension), then you can access the Service Provider from the app instance itself.
 ```F#
 // Acquiring the DefaultServiceProvider wrapper
@@ -888,6 +905,16 @@ let s = serviceProvider.Optional<IRandomService> ()
 // You can also provide a function returning a default implementation
 // if the service is missing for any reason
 let s = serviceProvider.Get<IRandomService> ServiceConstructor
+```
+### Host Logging
+If your app requires an access to a logger before the host is built, you can access a default one directly from your App instance.
+```F#
+app.Log.Information "Info"
+app.Log.Warning "Warn"
+app.Log.Error "Error"
+app.Log.Critical "Crit"
+app.Log.Debug "Debug"
+app.Log.Trace "Trace"
 ```
 ### System Configuration
 ### Request Helpers
