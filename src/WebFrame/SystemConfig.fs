@@ -2,6 +2,7 @@ module WebFrame.SystemConfig
 
 open System
 open System.Collections.Generic
+open System.IO
 open System.Threading.Tasks
 
 open Microsoft.AspNetCore.Builder
@@ -28,16 +29,26 @@ type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> 
 type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 
 type TemplatingSetup ( defaultConfig: SystemDefaults ) =
-    let defaultSetup = fun ( i: IServiceProvider ) ->
+    let defaultSetup ( defaultConfig: SystemDefaults ) ( root: string ) ( i: IServiceProvider ) =
         let loggerFactory = i.GetService<ILoggerFactory> ()
         let env = i.GetService<IWebHostEnvironment> ()
-        DotLiquidTemplateService ( defaultConfig, loggerFactory, env )
+        
+        DotLiquidTemplateService ( defaultConfig, root, loggerFactory, env )
+        :> obj
     let mutable userSetup = None
-    let getSetup () = userSetup |> Option.defaultValue defaultSetup
-    member val Setup = 0
-    member internal this.ConfigureServices: ServiceSetup = fun _ _ services ->
-        let setup = getSetup ()
-        services.AddSingleton<ITemplateRenderer, DotLiquidTemplateService> setup
+    let getSetup ( defaultConfig: SystemDefaults ) ( root: string ) =
+        let setup = userSetup |> Option.defaultValue defaultSetup
+        setup defaultConfig root
+    
+    member val DefaultRenderer = defaultSetup
+    member val TemplateRoot = "." with get, set
+    member _.Custom with set ( s: SystemDefaults -> string -> IServiceProvider -> obj ) = userSetup <- Some s
+    
+    member internal this.ConfigureServices: ServiceSetup = fun env _ services ->
+        let templateRoot = Path.Combine ( env.ContentRootPath, this.TemplateRoot ) |> Path.GetFullPath
+        let setup = getSetup defaultConfig templateRoot
+        let t = typeof<ITemplateRenderer>
+        services.AddSingleton ( t, setup )
     
 type SimpleRouteDescriptor ( routes: Routes ) =
     interface IRouteDescriptorService with
@@ -56,17 +67,17 @@ type InMemoryConfigSetup ( defaultConfig: SystemDefaults ) =
     member internal this.SetupWith ( v: ConfigOverrides ) =
         for i in v.Raw do this.[ i.Key ] <- i.Value
         
-    member internal _.Builder = fun ( hostContext: HostBuilderContext ) ( config: IConfigurationBuilder ) ->        
+    member internal _.Builder = fun ( _: HostBuilderContext ) ( config: IConfigurationBuilder ) ->        
         config.AddInMemoryCollection configStorage |> ignore
 
-type StaticFilesSetup ( defaultConfig: SystemDefaults ) =
+type StaticFilesSetup ( _defaultConfig: SystemDefaults ) =
     member val Options: StaticFileOptions option = None with get, set
     member val BrowsingOptions: DirectoryBrowserOptions option = None with get, set
     member val Route = "" with get, set
     member val WebRoot = "wwwroot" with get, set
     member val Enabled = false with get, set
     member val AllowBrowsing = false with get, set
-    member internal this.ConfigureApp: AppSetup = fun env conf app ->
+    member internal this.ConfigureApp: AppSetup = fun _env _conf app ->
         let app =
             if this.Enabled then
                 match this.Options with
@@ -110,7 +121,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     let mutable routes = Routes ()
     let mutable contentRoot = ""
     
-    let configureRoute ( env: IWebHostEnvironment ) ( conf: IConfiguration ) ( route: RouteDef ) ( endpoints: IEndpointRouteBuilder ) =
+    let configureRoute ( env: IWebHostEnvironment ) ( _conf: IConfiguration ) ( route: RouteDef ) ( endpoints: IEndpointRouteBuilder ) =
         let prepareDelegate ( eh: TaskErrorHandler list ) ( h: TaskHttpHandler ) =
             // Trying to find matching Error Handler
             let rec handleExceptions ex ( context: HttpContext ) ( h: TaskErrorHandler list ) = task {

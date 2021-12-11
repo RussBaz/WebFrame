@@ -47,7 +47,7 @@ type TemplateCache ( logger: ILogger, env: IWebHostEnvironment, path: string ) =
             | Some v -> v
             | None -> load ()
 
-type DotLiquidTemplateService ( defaults: SystemDefaults, loggerFactory: ILoggerFactory, env: IWebHostEnvironment ) =
+type DotLiquidTemplateService ( defaults: SystemDefaults, rootPath: string, loggerFactory: ILoggerFactory, env: IWebHostEnvironment ) =
     let logger =
         let loggerName = defaults |> SystemDefaults.getLoggerNameForCategory "DotLiquidTemplateService"
         loggerFactory.CreateLogger loggerName
@@ -61,7 +61,9 @@ type DotLiquidTemplateService ( defaults: SystemDefaults, loggerFactory: ILogger
                 templates.[ path ] <- t
                 t
     
-    do Template.FileSystem <- LocalFileSystem env.ContentRootPath
+    do
+        logger.LogInformation $"Template Root Set to {rootPath}"
+        Template.FileSystem <- LocalFileSystem rootPath
 
     interface ITemplateRenderer with
         member _.Load ( path: string ) = load path |> ignore
