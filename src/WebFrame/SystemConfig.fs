@@ -28,7 +28,7 @@ type ServiceSetup = IWebHostEnvironment -> IConfiguration -> IServiceCollection 
 type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> IApplicationBuilder
 type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 
-type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> obj
+type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> ITemplateRenderer
 
 type TemplatingSetup ( defaultConfig: SystemDefaults ) =
     let defaultSetup: TemplateConfiguration = fun defaultConfig root i ->
@@ -49,7 +49,7 @@ type TemplatingSetup ( defaultConfig: SystemDefaults ) =
     member internal this.ConfigureServices: ServiceSetup = fun env _ services ->
         if this.Enabled then
             let templateRoot = Path.Combine ( env.ContentRootPath, this.TemplateRoot ) |> Path.GetFullPath
-            let setup = getSetup defaultConfig templateRoot
+            let setup = fun i -> getSetup defaultConfig templateRoot i :> obj
             let t = typeof<ITemplateRenderer>
             services.AddSingleton ( t, setup )
         else

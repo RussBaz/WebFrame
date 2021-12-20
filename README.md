@@ -929,28 +929,57 @@ type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> 
 type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 
 // ServiceSetup injection points
-app.BeforeServices
-app.AfterServices
+app.Services.BeforeServices
+app.Services.AfterServices
 // AppSetup injection points
-app.BeforeApp
-app.BeforeRouting
-app.BeforeEndpoints
-app.AfterEndpoints
-app.AfterApp
+app.Services.BeforeApp
+app.Services.BeforeRouting
+app.Services.BeforeEndpoints
+app.Services.AfterEndpoints
+app.Services.AfterApp
 // EndpointSetup injection point
-app.Endpoint
+app.Services.Endpoint
 
 // Configuration for inbuilt services
 
 // Sets the content root of the server
 // A write-only string property, default value - empty string
-app.ContentRoot
+app.Services.ContentRoot
 
-// Static files related services
-app.StaticFiles
+// Static files related configs
+app.Services.StaticFiles
 
-// Templated related services
-app.Templating
+// Turning the static files middleware on and off
+// Off by default
+app.Services.StaticFiles.Enabled
+// Location of static files relatively to the content root
+app.Services.StaticFiles.WebRoot
+// Enables folder browsing for static files
+app.Services.StaticFiles.AllowBrowsing
+// Prefix for all static file routes
+// String property, default - empty string
+app.Services.StaticFiles.Route
+// If you need even more control, you can pass options directly
+// These classes are provided by ASP itself
+// None by default
+app.Services.StaticFiles.Options // Custom StaticFileOptions
+app.Services.StaticFiles.BrowsingOptions // Custom DirectoryBrowserOptions
+
+
+type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> ITemplateRenderer
+
+// Templated related configs
+app.Services.Templating
+
+// Enable or disable the templating services
+app.Services.Templating.Enabled
+// The root location for all the templates relative to the Content Root
+app.Services.Templating.TemplateRoot
+// The default renderer, uses DotLiquid
+app.Services.Templating.DefaultRenderer
+// The default rendrer can be replaced
+// TemplateConfiguration should return an obj that implements ITemplateRenderer from WebFrame.Templating
+app.Services.Templating.CustomConfiguration
 ```
 ### Request Helpers
 ### Modules
