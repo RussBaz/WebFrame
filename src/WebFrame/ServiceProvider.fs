@@ -22,3 +22,4 @@ type GenericServiceProvider ( provider: IServiceProvider ) =
         | None -> raise ( MissingRequiredDependencyException t.Name )
         
     member this.Get<'T> ( d: unit -> 'T ) = this.Optional<'T> () |> Option.defaultWith d
+    member this.Raw = provider

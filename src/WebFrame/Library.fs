@@ -228,6 +228,6 @@ module Error =
         fun ( e: 'T ) ( serv: RequestServices ) -> task {
             let t = e.GetType ()
             serv.StatusCode <- code
-            return serv.EndResponse $"{t.Name}: {e.Message}"
+            return serv.EndResponse $"Reason: {t.Name}"
         }
         |> onTask

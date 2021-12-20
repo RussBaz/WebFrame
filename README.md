@@ -905,6 +905,9 @@ let s = serviceProvider.Optional<IRandomService> ()
 // You can also provide a function returning a default implementation
 // if the service is missing for any reason
 let s = serviceProvider.Get<IRandomService> ServiceConstructor
+
+// In case you need an access to raw IServiceProvider
+let raw = serviceProvider.Raw
 ```
 ### Host Logging
 If your app requires an access to a logger before the host is built, you can access a default one directly from your App instance.
@@ -917,6 +920,38 @@ app.Log.Debug "Debug"
 app.Log.Trace "Trace"
 ```
 ### System Configuration
+```F#
+// If you need to add or configure a service, or even to add a custom Endpoint
+
+// Generic system configuration types
+type ServiceSetup = IWebHostEnvironment -> IConfiguration -> IServiceCollection -> IServiceCollection
+type AppSetup = IWebHostEnvironment -> IConfiguration -> IApplicationBuilder -> IApplicationBuilder
+type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
+
+// ServiceSetup injection points
+app.BeforeServices
+app.AfterServices
+// AppSetup injection points
+app.BeforeApp
+app.BeforeRouting
+app.BeforeEndpoints
+app.AfterEndpoints
+app.AfterApp
+// EndpointSetup injection point
+app.Endpoint
+
+// Configuration for inbuilt services
+
+// Sets the content root of the server
+// A write-only string property, default value - empty string
+app.ContentRoot
+
+// Static files related services
+app.StaticFiles
+
+// Templated related services
+app.Templating
+```
 ### Request Helpers
 ### Modules
 ### Testing
