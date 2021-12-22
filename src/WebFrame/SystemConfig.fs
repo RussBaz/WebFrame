@@ -1,9 +1,9 @@
 module WebFrame.SystemConfig
 
 open System
-open System.Collections.Generic
 open System.IO
 open System.Threading.Tasks
+open System.Collections.Generic
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting

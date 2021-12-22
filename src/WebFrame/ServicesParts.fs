@@ -1,4 +1,4 @@
-module WebFrame.ServiceProvider
+module WebFrame.ServicesParts
 
 open System
 

@@ -16,14 +16,13 @@ open WebFrame.Logging
 open WebFrame.QueryParts
 open WebFrame.RouteParts
 open WebFrame.RouteTypes
-open WebFrame.ServiceProvider
+open WebFrame.ServicesParts
 open WebFrame.Templating
     
 type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) as this =
     let endpoint = ctx.GetEndpoint ()
     let metadata = endpoint.Metadata
     let routeDescription = metadata.GetMetadata<RouteDescription> ()
-    
     member val Context = ctx
     member val Path = RequestPathProperties ctx.Request    
     member val Route = RouteParameters ctx.Request

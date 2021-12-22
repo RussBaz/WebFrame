@@ -11,7 +11,7 @@ open WebFrame.Logging
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
-open WebFrame.ServiceProvider
+open WebFrame.ServicesParts
 open WebFrame.Services
 open WebFrame.SystemConfig
 
@@ -40,7 +40,7 @@ type AppModule ( prefix: string ) =
         let h: TaskHttpHandler = fun config ctx -> ( ctx, config ) |> RequestServices |> handler
         
         let routeDef = RouteDef.createWithHandler route h
-            
+
         routes.[ route ] <- routeDef
         
     let addModule name ( m: #AppModule ) =

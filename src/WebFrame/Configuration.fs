@@ -1,8 +1,8 @@
 module WebFrame.Configuration
 
 open System.Collections.Generic
-open Microsoft.Extensions.Logging
 
+open Microsoft.Extensions.Logging
 
 type SystemDefaults = {
     SettingsPrefix: string
