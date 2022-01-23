@@ -24,6 +24,14 @@ type MyRecord = {
     Name: string
     Position: int
 }
+type AnotherRecord = {
+    Value: string
+    Number: int
+}
+type NestedResponse<'T> = {
+    Name: string
+    Data: 'T
+}
 let app = App ()
 
 let api = AppModule "/api"
@@ -248,4 +256,30 @@ let ``Testing basic DotLiquid templating `` ( expectedContent:string ) = task {
     let ct = r.Content.Headers.ContentType.ToString ()
     ct |> shouldEqual "text/html"
     content |> shouldEqual expectedContent
+}
+
+[<Test>]
+let ``Checking the nested object response functionality`` () = task {
+    // TODO: This will not work if the record constructor is private, therefore, it needs a simple solution.
+    let sampleInnerData = [ { Value = "sup"; Number = 3 }; { Value = "another"; Number = 14 } ]
+    let expectedResult = """{"Name":"Test","Data":[{"Value":"sup","Number":3},{"Value":"another","Number":14}]}"""
+    
+    let app = App ()
+    app.Get "/" <- fun serv ->
+        let r = {
+            Name = "Test"
+            Data = sampleInnerData
+        }
+        serv.EndResponse r
+        
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.MediaType
+    ct |> shouldEqual "application/json"
+    content |> shouldEqual expectedResult
 }

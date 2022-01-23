@@ -13,6 +13,7 @@ open Newtonsoft.Json
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
 
+open WebFrame.Configuration
 open WebFrame.Converters
 open WebFrame.Exceptions
 
@@ -110,30 +111,11 @@ type FormEncodedBody ( req: HttpRequest ) =
     member _.Raw with get () = try getForm () |> Some with | :? MissingRequiredFormException -> None
     member _.Files with get () = try getFiles () |> Some with | :? MissingRequiredFormException -> None
     member val IsPresent = req.HasFormContentType
-    
-type RequireAllPropertiesContractResolver() =
-    inherit DefaultContractResolver()
 
-    // Code samples are taken from:
-    // https://stackoverflow.com/questions/29655502/json-net-require-all-properties-on-deserialization/29660550
-        
-    override this.CreateProperty ( memberInfo, serialization ) =
-        let prop = base.CreateProperty ( memberInfo, serialization )
-        let isRequired =
-            not prop.PropertyType.IsGenericType || prop.PropertyType.GetGenericTypeDefinition () <> typedefof<Option<_>>
-        if isRequired then prop.Required <- Required.Always
-        prop
-
-type JsonEncodedBody ( req: HttpRequest ) =
+type JsonEncodedBody ( req: HttpRequest, settings: Lazy<JsonSerializerSettings> ) =
     let mutable unknownEncoding = false
     let mutable json: JObject option = None
-    
-    let jsonSettings =
-        JsonSerializerSettings (
-            NullValueHandling = NullValueHandling.Ignore,
-            MissingMemberHandling = MissingMemberHandling.Error,
-            ContractResolver = RequireAllPropertiesContractResolver () )
-    let jsonSerializer = JsonSerializer.CreateDefault jsonSettings
+    let jsonSerializer = lazy ( JsonSerializer.CreateDefault settings.Value )
     
     let jsonCharset =
         match MediaTypeHeaderValue.TryParse ( StringSegment req.ContentType ) with
@@ -193,7 +175,7 @@ type JsonEncodedBody ( req: HttpRequest ) =
         use tr = new JTokenReader ( j )
         
         try
-            return jsonSerializer.Deserialize<'T> tr
+            return jsonSerializer.Value.Deserialize<'T> tr
         with
         | :? JsonSerializationException -> return raise ( MissingRequiredJsonException () )
     }
@@ -297,8 +279,8 @@ type JsonEncodedBody ( req: HttpRequest ) =
     }
     member val IsJsonContentType = not notJsonContentType
     
-type Body ( req: HttpRequest ) =
+type Body ( req: HttpRequest, jsonSettingsProvider: Lazy<IJsonDeserializationService> ) =
     member val Form = FormEncodedBody req
-    member val Json = JsonEncodedBody req
+    member val Json = JsonEncodedBody ( req, lazy jsonSettingsProvider.Value.Settings )
     member val Raw = req.Body
     member val RawPipe = req.BodyReader

@@ -23,13 +23,14 @@ type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) as this =
     let endpoint = ctx.GetEndpoint ()
     let metadata = endpoint.Metadata
     let routeDescription = metadata.GetMetadata<RouteDescription> ()
+    
     member val Context = ctx
     member val Path = RequestPathProperties ctx.Request    
     member val Route = RouteParameters ctx.Request
     member val Query = QueryParameters ctx.Request
     member val Headers = Headers ( ctx.Request, ctx.Response )
     member val Cookies = Cookies ( ctx.Request, ctx.Response )
-    member val Body = Body ctx.Request
+    member val Body = Body ( ctx.Request, lazy ( this.Services.Required () ) )
     member val Services: GenericServiceProvider = GenericServiceProvider ctx.RequestServices
     
     member val AppRoutes = AllRoutes ( lazy ( this.Services.Required () ) )

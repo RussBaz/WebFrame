@@ -2,9 +2,9 @@ STORAGE: NONE
 RESTRICTION: == net6.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    DotLiquid (2.2.585)
+    DotLiquid (2.2.595)
     FSharp.Core (6.0.1)
-    FsUnit (4.1)
+    FsUnit (4.2)
       FSharp.Core (>= 5.0.2)
       NETStandard.Library (>= 2.0.3)
       NUnit (>= 3.13.2 < 3.14)
@@ -27,7 +27,7 @@ NUGET
     NuGet.Frameworks (6.0)
     NUnit (3.13.2)
       NETStandard.Library (>= 2.0)
-    NUnit3TestAdapter (4.1)
+    NUnit3TestAdapter (4.2.1)
     System.Collections.Immutable (6.0)
       System.Runtime.CompilerServices.Unsafe (>= 6.0)
     System.IO.Pipelines (6.0.1)

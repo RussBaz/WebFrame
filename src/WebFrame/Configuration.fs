@@ -4,6 +4,9 @@ open System.Collections.Generic
 
 open Microsoft.Extensions.Logging
 
+open Newtonsoft.Json
+open Newtonsoft.Json.Serialization
+
 type SystemDefaults = {
     SettingsPrefix: string
     LoggerPrefix: string
@@ -14,9 +17,7 @@ type SystemDefaults = {
 
 module SystemDefaults =
     let defaultLoggerFactory =
-        LoggerFactory.Create ( fun logging ->
-            logging.AddSimpleConsole () |> ignore
-            () )
+        LoggerFactory.Create ( fun l -> l.AddSimpleConsole () |> ignore )
     let standard = {
         SettingsPrefix = "WebFrame"
         LoggerPrefix = "WebFrame"
@@ -54,3 +55,23 @@ type ConfigOverrides ( defaultConfig: SystemDefaults ) =
     member _.ConnectionStrings with get i = get $"ConnectionStrings:{i}" and set i v = set $"ConnectionStrings:{i}" v
         
     member val Raw = config
+    
+// Some Json Serialization Configs
+type IJsonSerializationService =
+    abstract Settings: JsonSerializerSettings
+    
+type IJsonDeserializationService =
+    abstract Settings: JsonSerializerSettings
+    
+type RequireAllPropertiesContractResolver () =
+    inherit DefaultContractResolver ()
+
+    // Code samples are taken from:
+    // https://stackoverflow.com/questions/29655502/json-net-require-all-properties-on-deserialization/29660550
+        
+    override this.CreateProperty ( memberInfo, serialization ) =
+        let prop = base.CreateProperty ( memberInfo, serialization )
+        let isRequired =
+            not prop.PropertyType.IsGenericType || prop.PropertyType.GetGenericTypeDefinition () <> typedefof<Option<_>>
+        if isRequired then prop.Required <- Required.Always
+        prop

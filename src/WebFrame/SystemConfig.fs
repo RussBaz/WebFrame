@@ -30,6 +30,40 @@ type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 
 type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> ITemplateRenderer
 
+
+type JsonSerializationSetup ( defaultConfig: SystemDefaults ) =
+    let defaultSettings () =
+        let s =
+            JsonSerializerSettings (
+                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor )
+        s
+        
+    member this.Default with get () = defaultSettings ()
+    member val Settings = defaultSettings () with get, set
+        
+type JsonDeserializationService ( settings: JsonSerializerSettings ) =
+    interface IJsonDeserializationService with
+        member this.Settings = settings
+    
+type JsonDeserializationSetup ( defaultConfig: SystemDefaults ) =
+    let defaultSettings () =
+        let s =
+            JsonSerializerSettings (
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Error,
+                ContractResolver = RequireAllPropertiesContractResolver () )
+        s
+    
+    member this.Default with get () = defaultSettings ()
+    member val Settings = defaultSettings () with get, set
+    member internal this.ConfigureServices: ServiceSetup = fun _ _ services ->
+        let settingsProvider = JsonDeserializationService this.Settings
+        services.AddSingleton<IJsonDeserializationService> settingsProvider
+        
+type JsonSetup ( defaultConfig: SystemDefaults ) =
+    member val Serialization = JsonSerializationSetup defaultConfig
+    member val Deserialization = JsonDeserializationSetup defaultConfig
+
 type TemplatingSetup ( defaultConfig: SystemDefaults ) =
     let defaultSetup: TemplateConfiguration = fun defaultConfig root i ->
         let loggerFactory = i.GetService<ILoggerFactory> ()
@@ -122,6 +156,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     let staticFilesSetup = StaticFilesSetup defaultConfig
     let configSetup = InMemoryConfigSetup defaultConfig
     let templatingSetup = TemplatingSetup defaultConfig
+    let jsonSetup = JsonSetup defaultConfig
     
     let mutable routes = Routes ()
     let mutable contentRoot = ""
@@ -166,7 +201,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                                 context.Response.WriteAsync t
                             | FileResponse f -> context.Response.SendFileAsync f
                             | JsonResponse data ->
-                                let output = JsonConvert.SerializeObject data
+                                let output = JsonConvert.SerializeObject ( data, jsonSetup.Serialization.Settings )
                                 context.Response.ContentType <- "application/json; charset=utf-8"
                                 context.Response.WriteAsync output
                     with
@@ -276,6 +311,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
             ( env, config, serv ) |||> templatingSetup.ConfigureServices |> ignore
             
             ( env, config, serv ) |||> staticFilesSetup.ConfigureServices |> ignore
+            ( env, config, serv ) |||> jsonSetup.Deserialization.ConfigureServices |> ignore
             
             // Slot for custom services
             ( env, config, serv ) |||> getServiceSetup afterServiceSetup |> ignore
@@ -373,4 +409,5 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     member _.Endpoint with set value = value |> endpointSetup.Add
     member val StaticFiles = staticFilesSetup
     member val Templating = templatingSetup
+    member val Json = jsonSetup
     member _.ContentRoot with set value = contentRoot <- value
