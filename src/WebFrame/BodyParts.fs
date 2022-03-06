@@ -11,7 +11,6 @@ open Microsoft.Extensions.Primitives
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
-open Newtonsoft.Json.Serialization
 
 open WebFrame.Configuration
 open WebFrame.Converters

@@ -37,7 +37,10 @@ type AppModule ( prefix: string ) =
         if routes.ContainsKey route then
             raise ( DuplicateRouteException ( route.ToString () ) )
             
-        let h: TaskHttpHandler = fun config ctx -> ( ctx, config ) |> RequestServices |> handler
+        let h: TaskHttpHandler = fun config ctx ->
+            ( ctx, config )
+            |> RequestServices
+            |> handler
         
         let routeDef = RouteDef.createWithHandler route h
 

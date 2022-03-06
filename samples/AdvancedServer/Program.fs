@@ -86,7 +86,7 @@ module Program =
     
     // Accessing a custom service
     app.Get "/service" <- fun serv ->
-        let s = serv.GetService<IMyService> ()
+        let s = serv.Services.Required<IMyService> ()
         
         s.Print "Hello"
         
@@ -121,7 +121,7 @@ module Program =
     // Requesting ASP.NET Core services
     // and returning objects (json by default)
     app.Get "/env" <- fun serv ->
-        let env = serv.GetService<IWebHostEnvironment> ()
+        let env = serv.Services.Required<IWebHostEnvironment> ()
         
         serv.EndResponse env
 

@@ -8,6 +8,7 @@ open Microsoft.Extensions.Logging
 
 open WebFrame.ConfigParts
 open WebFrame.Configuration
+open WebFrame.GlobalizationParts
 open WebFrame.Http
 open WebFrame.BodyParts
 open WebFrame.CookieParts
@@ -34,6 +35,7 @@ type RequestServices ( ctx: HttpContext, defaults: SystemDefaults ) as this =
     member val Services: GenericServiceProvider = GenericServiceProvider ctx.RequestServices
     
     member val AppRoutes = AllRoutes ( lazy ( this.Services.Required () ) )
+    member val Globalization = Globalization ( ctx, lazy ( this.Services.Required () ) )
         
     member _.Redirect ( url, permanent ) =
         ctx.Response.Redirect ( url, permanent )

@@ -2,6 +2,7 @@ module WebFrame.Configuration
 
 open System.Collections.Generic
 
+open System.Globalization
 open Microsoft.Extensions.Logging
 
 open Newtonsoft.Json
@@ -41,8 +42,12 @@ module SystemDefaults =
             $"{prefix}:GlobalLogger:FullName", getGlobalLoggerName c
             $"{prefix}:GlobalLogger:Prefix", c.LoggerPrefix
         ]
+        
+type IGlobalizationConfig =
+    abstract DefaultCulture: CultureInfo with get
+    abstract AllowedCultures: CultureInfo list with get
 
-type ConfigOverrides ( defaultConfig: SystemDefaults ) =
+type ConfigOverrides ( _defaultConfig: SystemDefaults ) =
     let config = Dictionary<string, string> ()
     
     let get i =

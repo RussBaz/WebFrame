@@ -26,6 +26,7 @@ F# framework for rapid prototyping with ASP.NET Core.
     * [Body Parts](#body-parts)
       * [Form](#form)
       * [Json](#json)
+    * [Globalization](#globalization)
     * [Request Logging](#request-logging)
   * [DI Outside of Request](#di-outside-of-request)
   * [Host Logging](#host-logging)
@@ -874,6 +875,18 @@ app.PostTask "/resource" <- fun serv -> task {
     return serv.EndResponse ()
 }
 ```
+#### Globalization
+```F#
+app.Get "/culture" <- fun serv ->
+    // If the request has a valid Accept-Language header
+    // then it tries to convert it into an associated CultureInfo
+    // however, it has to be present in the list of allowed cultures
+    // otherwise, it returns a default culture
+    // In addition, a missing header will result in the default culture returned as well
+    let c = serv.Globalization.RequestCulture
+    
+    serv.EndResponse c.Name
+```
 #### Request Logging
 Services for dealing with logging during the request handling.
 ```F#
@@ -980,8 +993,41 @@ app.Services.Templating.DefaultRenderer
 // The default rendrer can be replaced
 // TemplateConfiguration should return an obj that implements ITemplateRenderer from WebFrame.Templating
 app.Services.Templating.CustomConfiguration
+
+// Globalization related configs
+app.Services.Globalization
+
+// A default culture
+app.Services.Globalization.DefaultCulture
+// A list of allowed cultures
+app.Services.Globalization.AllowedCultures
 ```
 ### Request Helpers
+```F#
+open type WebFrame.Endpoints.Helpers
+
+let app = App ()
+
+// This will always return a given message
+app.Get "/" <- always "Hello World!"
+// Or a HttpWorkload
+app.Get "/" <- always EndResponse
+// Or a lambda
+app.Get "/" <- always ( fun () -> EndResponse )
+
+// And the same as above but as a task
+app.GetTask "/" <- alwaysTask "Hello World!"
+app.GetTask "/" <- alwaysTask EndResponse
+app.GetTask "/" <- alwaysTask ( fun () -> task { return EndResponse } )
+
+// Returns an html page from the content root
+app.Get "/" <- page "Index.html"
+// Or any other file
+// Content-Type will be selected automatically
+app.Get "/" <- file "Image.jpeg"
+// Or manually 
+app.Get "/" <- file ( "Image.jpeg", "text/plain" )
+```
 ### Modules
 ### Testing
 ### Exceptions

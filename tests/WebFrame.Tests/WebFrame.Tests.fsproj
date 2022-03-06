@@ -9,6 +9,8 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="BasicTests.fs" />
     <Compile Include="Program.fs" />
+    <Content Include="About.html" />
+    <Content Include="Sample.txt" />
     <Content Include="paket.references" />
     <Content Include="Index.liquid" />
     <Content Include="_Inner.liquid" />

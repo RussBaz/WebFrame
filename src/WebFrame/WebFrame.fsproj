@@ -20,6 +20,7 @@
     <Compile Include="BodyParts.fs" />
     <Compile Include="ConfigParts.fs" />
     <Compile Include="ServicesParts.fs" />
+    <Compile Include="GlobalizationParts.fs" />
     <Compile Include="Templating.fs" />
     <Compile Include="Services.fs" />
     <Compile Include="SystemConfig.fs" />

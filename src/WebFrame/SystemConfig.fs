@@ -1,6 +1,7 @@
 module WebFrame.SystemConfig
 
 open System
+open System.Globalization
 open System.IO
 open System.Threading.Tasks
 open System.Collections.Generic
@@ -9,6 +10,7 @@ open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Routing
+open Microsoft.AspNetCore.StaticFiles
 open Microsoft.AspNetCore.TestHost
 
 open Microsoft.Extensions.Configuration
@@ -31,7 +33,21 @@ type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> ITemplateRenderer
 
 
-type JsonSerializationSetup ( defaultConfig: SystemDefaults ) =
+type GlobalizationSetup ( _defaultConfig: SystemDefaults ) =
+    let mutable cultures = set [ CultureInfo.CurrentCulture.Name ]
+    member val DefaultCulture = CultureInfo.CurrentCulture with get, set
+    member _.AllowedCultures
+        with get () = cultures |> Seq.map CultureInfo |> List.ofSeq
+        and set ( c: CultureInfo list ) = cultures <- c |> Seq.map ( fun i -> i.Name ) |> set
+        
+    member internal this.ConfigureServices: ServiceSetup = fun _ _ services ->
+        services.AddSingleton<IGlobalizationConfig> {
+            new IGlobalizationConfig with
+                member _.DefaultCulture = this.DefaultCulture
+                member _.AllowedCultures = this.AllowedCultures
+        }
+
+type JsonSerializationSetup ( _defaultConfig: SystemDefaults ) =
     let defaultSettings () =
         let s =
             JsonSerializerSettings (
@@ -45,7 +61,7 @@ type JsonDeserializationService ( settings: JsonSerializerSettings ) =
     interface IJsonDeserializationService with
         member this.Settings = settings
     
-type JsonDeserializationSetup ( defaultConfig: SystemDefaults ) =
+type JsonDeserializationSetup ( _defaultConfig: SystemDefaults ) =
     let defaultSettings () =
         let s =
             JsonSerializerSettings (
@@ -157,6 +173,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     let configSetup = InMemoryConfigSetup defaultConfig
     let templatingSetup = TemplatingSetup defaultConfig
     let jsonSetup = JsonSetup defaultConfig
+    let globalizationSetup = GlobalizationSetup defaultConfig
     
     let mutable routes = Routes ()
     let mutable contentRoot = ""
@@ -199,10 +216,20 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                                 if String.IsNullOrEmpty context.Response.ContentType then
                                     context.Response.ContentType <- "text/html"
                                 context.Response.WriteAsync t
-                            | FileResponse f -> context.Response.SendFileAsync f
+                            | FileResponse f ->
+                                let path = $"{env.ContentRootPath}/{f}"
+                                if String.IsNullOrEmpty context.Response.ContentType then
+                                    let provider = FileExtensionContentTypeProvider ()
+                                    let ct =
+                                        match provider.TryGetContentType path with
+                                        | true, v -> v
+                                        | false, _ -> "text/plain"
+                                    context.Response.ContentType <- ct
+                                context.Response.SendFileAsync path
                             | JsonResponse data ->
                                 let output = JsonConvert.SerializeObject ( data, jsonSetup.Serialization.Settings )
-                                context.Response.ContentType <- "application/json; charset=utf-8"
+                                if String.IsNullOrEmpty context.Response.ContentType then
+                                    context.Response.ContentType <- "application/json; charset=utf-8"
                                 context.Response.WriteAsync output
                     with
                     // Catching unhandled exceptions with default handlers
@@ -312,6 +339,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
             
             ( env, config, serv ) |||> staticFilesSetup.ConfigureServices |> ignore
             ( env, config, serv ) |||> jsonSetup.Deserialization.ConfigureServices |> ignore
+            ( env, config, serv ) |||> globalizationSetup.ConfigureServices |> ignore
             
             // Slot for custom services
             ( env, config, serv ) |||> getServiceSetup afterServiceSetup |> ignore
@@ -410,4 +438,5 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     member val StaticFiles = staticFilesSetup
     member val Templating = templatingSetup
     member val Json = jsonSetup
+    member val Globalization = globalizationSetup
     member _.ContentRoot with set value = contentRoot <- value

@@ -1,6 +1,7 @@
 module WebFrame.Tests.BasicTests
 
 open System
+open System.Globalization
 open System.Net
 open System.Net.Http
 
@@ -14,7 +15,6 @@ open WebFrame
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
-open WebFrame.Templating
 open type Endpoints.Helpers
 
 open Helpers
@@ -43,8 +43,20 @@ api.Get "/log" <- fun serv ->
     serv.Log.Information $"Name: {description.Name}"
     
     serv.EndResponse ()
+    
+let localization = AppModule "/loc"
+localization.Get "/culture" <- fun serv ->
+    let c = serv.Globalization.RequestCulture
+    serv.EndResponse c.Name
 
 app.Log.Information "Hello"
+
+app.Services.Globalization.AllowedCultures <- [
+    CultureInfo "en"
+    CultureInfo "en-GB"
+    CultureInfo "fr"
+    CultureInfo "ru-RU"
+]
 
 app.Config.[ "hello" ] <- "World"
 
@@ -75,6 +87,7 @@ app.Get "/log/{groupId:int?}" <- fun serv ->
     serv.EndResponse ()
     
 app.Module "api" <- api
+app.Module "localization" <- localization
 
 [<SetUp>]
 let Setup () =
@@ -197,7 +210,7 @@ let ``Verifying the IServiceProvider getter method logic`` () = task {
 
 [<Test>]
 let ``Confirming that the Service Provider returned from App works`` () = task {
-    use! server = app.TestServer ()
+    use! _server = app.TestServer ()
     let serviceProvider = app.GetServiceProvider ()
     let confService = serviceProvider.Required<IConfiguration> ()
     
@@ -235,8 +248,14 @@ let ``Testing basic DotLiquid templating `` ( expectedContent:string ) = task {
     let app = App ()
     
     app.Services.ContentRoot <- __SOURCE_DIRECTORY__
+    app.Log.Warning $"C: {__SOURCE_DIRECTORY__}"
     app.Get "/" <- fun serv ->
         serv.Page "Index.liquid" {| Hello = "World" |}
+        
+    app.Get "/about" <- page "About.html"
+    app.Get "/txt" <- file "Sample.txt"
+    app.Get "/txt1" <- file ( "Sample.txt", "text/html" )
+    app.Get "/txt2" <- file "About.html"
     
     use! server = app.TestServer ()
     use client = server.GetTestClient ()
@@ -256,11 +275,43 @@ let ``Testing basic DotLiquid templating `` ( expectedContent:string ) = task {
     let ct = r.Content.Headers.ContentType.ToString ()
     ct |> shouldEqual "text/html"
     content |> shouldEqual expectedContent
+    
+    let! r = client.GetAsync "/txt"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/plain"
+    content |> shouldEqual """sample file"""
+    
+    let! r = client.GetAsync "/txt1"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/html"
+    content |> shouldEqual """sample file"""
+    
+    let! r = client.GetAsync "/txt2"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/html"
+    content |> shouldEqual """<h1>About</h1>"""
+    
+    let! r = client.GetAsync "/about"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    ct |> shouldEqual "text/html"
+    content |> shouldEqual """<h1>About</h1>"""
 }
 
 [<Test>]
 let ``Checking the nested object response functionality`` () = task {
-    // TODO: This will not work if the record constructor is private, therefore, it needs a simple solution.
+    // TODO: This will not work if the record constructor is private, therefore, it may need a different solution.
     let sampleInnerData = [ { Value = "sup"; Number = 3 }; { Value = "another"; Number = 14 } ]
     let expectedResult = """{"Name":"Test","Data":[{"Value":"sup","Number":3},{"Value":"another","Number":14}]}"""
     
@@ -282,4 +333,48 @@ let ``Checking the nested object response functionality`` () = task {
     let ct = r.Content.Headers.ContentType.MediaType
     ct |> shouldEqual "application/json"
     content |> shouldEqual expectedResult
+}
+
+[<Test>]
+let ``Verifying Accept-Language handling`` () = task {
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/loc/culture"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    content |> shouldEqual CultureInfo.CurrentCulture.Name
+    
+    use req = new HttpRequestMessage ( HttpMethod.Get, "/loc/culture" )
+    req.Headers.AcceptLanguage.ParseAdd "ru-RU"
+    let! r = client.SendAsync req
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    content |> shouldEqual "ru-RU"
+    
+    use req = new HttpRequestMessage ( HttpMethod.Get, "/loc/culture" )
+    req.Headers.AcceptLanguage.ParseAdd "en, ru-RU; q=0.9, en-GB; q=0.8, fr"
+    let! r = client.SendAsync req
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    content |> shouldEqual "en"
+    
+    use req = new HttpRequestMessage ( HttpMethod.Get, "/loc/culture" )
+    req.Headers.AcceptLanguage.ParseAdd "ru-RU; q=0.9, en-GB; q=0.8, fr, en"
+    let! r = client.SendAsync req
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    content |> shouldEqual "fr"
+    
+    use req = new HttpRequestMessage ( HttpMethod.Get, "/loc/culture" )
+    req.Headers.AcceptLanguage.ParseAdd "aa-bb"
+    let! r = client.SendAsync req
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    content |> shouldEqual CultureInfo.CurrentCulture.Name
 }
