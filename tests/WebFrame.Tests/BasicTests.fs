@@ -19,6 +19,10 @@ open type Endpoints.Helpers
 
 open Helpers
 
+type CoffeeException () = inherit Exception "I am a teapot!"
+type NotEnoughCoffeeException () = inherit Exception "We need more coffee!"
+type TooMuchCoffeeException () = inherit Exception "We've had enough coffee already!"
+
 type MyRecord = {
     Id: Guid
     Name: string
@@ -248,7 +252,6 @@ let ``Testing basic DotLiquid templating `` ( expectedContent:string ) = task {
     let app = App ()
     
     app.Services.ContentRoot <- __SOURCE_DIRECTORY__
-    app.Log.Warning $"C: {__SOURCE_DIRECTORY__}"
     app.Get "/" <- fun serv ->
         serv.Page "Index.liquid" {| Hello = "World" |}
         
@@ -377,4 +380,153 @@ let ``Verifying Accept-Language handling`` () = task {
     
     r.StatusCode |> shouldEqual HttpStatusCode.OK
     content |> shouldEqual CultureInfo.CurrentCulture.Name
+}
+
+[<Test>]
+let ``Checking for custom error handlers`` () = task {
+    let app = App ()
+    app.Get "/coffee" <- fun serv ->
+        raise ( CoffeeException () )
+        serv.EndResponse ()
+        
+    app.Get "/work" <- fun serv ->
+        raise ( NotEnoughCoffeeException () )
+        serv.EndResponse ()
+        
+    app.Get "/double-shot/coffee" <- fun serv ->
+        raise ( TooMuchCoffeeException () )
+        serv.EndResponse ()
+
+    app.Errors <- Error.codeFor<CoffeeException> 418
+    app.Errors <- Error.on <| fun ( e: NotEnoughCoffeeException ) serv ->
+        serv.StatusCode <- 400
+        serv.EndResponse $"{e.Message}"
+    app.Errors <- Error.onTask <| fun ( e: TooMuchCoffeeException ) serv -> task {
+        serv.StatusCode <- 500
+        return serv.EndResponse $"{e.Message}"
+    }
+    
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/coffee"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 418
+    content |> shouldEqual "CoffeeException: I am a teapot!"
+
+    let! r = client.GetAsync "/work"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> int |> shouldEqual 400
+    content |> shouldEqual "We need more coffee!"
+    
+    let! r = client.GetAsync "/double-shot/coffee"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> int |> shouldEqual 500
+    content |> shouldEqual "We've had enough coffee already!"
+}
+
+[<Test>]
+let ``Checking exception filter`` () = task {
+    use _ = new EnvVar ( "ASPNETCORE_ENVIRONMENT", "Development" )
+    let app = App ()
+    app.Services.Exceptions.UserExceptionFilter <-
+        app.Services.Exceptions.UserExceptionFilter
+        |> Map.add "Staging" false
+    app.Services.Exceptions.InputExceptionFilter <-
+        app.Services.Exceptions.InputExceptionFilter
+        |> Map.add "Staging" false
+    app.Services.Exceptions.ServerExceptionFilter <-
+        app.Services.Exceptions.ServerExceptionFilter
+        |> Map.add "Staging" true
+    
+    app.Get "/coffee" <- fun serv ->
+        raise ( CoffeeException () )
+        serv.EndResponse ()
+        
+    app.Get "/input" <- fun serv ->
+        raise ( InputException "My Input Error" )
+        serv.EndResponse ()
+        
+    app.Get "/server" <- fun serv ->
+        raise ( ServerException "My Server Error" )
+        serv.EndResponse ()
+        
+    app.Errors <- Error.codeFor<CoffeeException> 418
+    
+    app.Build () |> ignore
+    
+    // Development Env Tests
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/coffee"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 418
+    content |> shouldEqual "CoffeeException: I am a teapot!"
+    
+    let! r = client.GetAsync "/input"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 400
+    content |> shouldEqual "InputException: My Input Error"
+    
+    let! r = client.GetAsync "/server"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 500
+    content |> shouldEqual "ServerException: My Server Error"
+    
+    // Staging Env Tests
+    use _ = new EnvVar ( "ASPNETCORE_ENVIRONMENT", "Staging" )
+    app.Build () |> ignore
+    
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/coffee"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 418
+    content |> shouldEqual "Workflow Error"
+    
+    let! r = client.GetAsync "/input"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 400
+    content |> shouldEqual "Input Validation Error"
+    
+    let! r = client.GetAsync "/server"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 500
+    content |> shouldEqual "ServerException: My Server Error"
+    
+    // Production Env Tests
+    use _ = new EnvVar ( "ASPNETCORE_ENVIRONMENT", "Production" )
+    app.Build () |> ignore
+    
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/coffee"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 418
+    content |> shouldEqual "CoffeeException: I am a teapot!"
+    
+    let! r = client.GetAsync "/input"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 400
+    content |> shouldEqual "InputException: My Input Error"
+    
+    let! r = client.GetAsync "/server"
+    let! content = r.Content.ReadAsStringAsync ()    
+
+    r.StatusCode |> int |> shouldEqual 500
+    content |> shouldEqual "Server Error"
 }

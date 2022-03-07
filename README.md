@@ -426,6 +426,10 @@ serv.Config
 // Check Body Parts for details
 serv.Body
 
+// Globalization services
+// Check the Globalization section for details
+serv.Globalization
+
 // Server route services
 serv.AppRoutes
 
@@ -876,6 +880,7 @@ app.PostTask "/resource" <- fun serv -> task {
 }
 ```
 #### Globalization
+Services for dealing with globalisation of your app.
 ```F#
 app.Get "/culture" <- fun serv ->
     // If the request has a valid Accept-Language header
@@ -1001,6 +1006,26 @@ app.Services.Globalization
 app.Services.Globalization.DefaultCulture
 // A list of allowed cultures
 app.Services.Globalization.AllowedCultures
+
+// Exceptions related configs
+app.Services.Exceptions
+
+// User Excpetions are excpetions that are processed in app.Error handlers
+
+// Boolean fields
+// true - show / false - hide
+app.Services.Exceptions.ShowUserExceptionsByDefault
+app.Services.Exceptions.ShowInputExceptionsByDefault
+app.Services.Exceptions.ShowServerExceptionsByDefault
+
+// Map<string, bool> fields
+// Environment Name -> true - show / false - hide
+app.Services.Exceptions.UserExceptionFilter
+app.Services.Exceptions.InputExceptionFilter
+app.Services.Exceptions.ServerExceptionFilter
+
+// Whenever an environment name cannot be found in the filter list
+// it will use the default value
 ```
 ### Request Helpers
 ```F#
@@ -1029,6 +1054,101 @@ app.Get "/" <- file "Image.jpeg"
 app.Get "/" <- file ( "Image.jpeg", "text/plain" )
 ```
 ### Modules
+```F#
+open WebFrame
+
+// Creating a module with an "/api" path prefix
+let api = AppModule "/api"
+api.Get "/" <- fun serv -> serv.EndResponse "Api"
+
+let app = App ()
+app.Get "/" <- fun serv -> serv.EndResponse "Main"
+
+// Giving a name to a module and registering it with an app
+app.Module "api" <- api
+
+// Routes:
+// "/" -> Main
+// "/api/" -> Api
+
+app.Run ()
+
+```
 ### Testing
+Here is an example of who one should approach testing in WebFrame.
+The key thing to remember is to use `app.TestServer ()` method instead of `app.Run ()` method.
+```F#
+open System.Threading.Tasks
+
+open Microsoft.AspNetCore.TestHost
+
+open NUnit.Framework
+
+open WebFrame
+
+// Standard app setup
+let app = App ()
+app.Get "/" <- fun serv -> serv.EndResponse "index"
+
+[<Test>]
+let ``Verifies that the test server is alive`` () = task {
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    Assert.AreEqual ( r.StatusCode, HttpStatusCode.OK )
+    Assert.AreEqual ( content, "Hello World!" )
+}
+```
 ### Exceptions
+There are 2 base Exceptions
+```F#
+type InputException ( msg: string ) = inherit Exception ( msg )
+type ServerException ( msg: string ) = inherit Exception ( msg )
+```
+`InputException` and its subclasses result in 4xx errors.
+
+`ServerException` and its subclasses result in 5xx errors.
+
+These exceptions are automatically processed. If you want to handle a custom exception automatically, you can use:
+```F#
+open WebFrame
+
+// Sample Exception
+type CoffeeException () = inherit Exception "I am a teapot!"
+type NotEnoughCoffeeException () = inherit Exception "We need more coffee!"
+type TooMuchCoffeeException () = inherit Exception "We've had enough coffee already!"
+
+let app = App ()
+
+app.Get "/coffee" <- fun serv ->
+    raise ( CoffeeException () )
+    serv.EndResponse ()
+        
+app.Get "/work" <- fun serv ->
+    raise ( NotEnoughCoffeeException () )
+    serv.EndResponse ()
+    
+app.Get "/double-shot/coffee" <- fun serv ->
+    raise ( TooMuchCoffeeException () )
+    serv.EndResponse ()
+
+// By default, user handled excpetions are shown in every environment
+// If you need to change this behaviour, please look at the Exceptions part of the System Configuration section
+
+// This code will automatically return 418 response code whenever CoffeeException is raised in the module/app
+app.Errors <- Error.codeFor<CoffeeException> 418
+
+// If you need a custom processing, you can add your own handler
+app.Errors <- Error.on <| fun ( e: NotEnoughCoffeeException ) serv ->
+    serv.StatusCode <- 400
+    serv.EndResponse $"{e.Message}"
+
+app.Errors <- Error.onTask <| fun ( e: TooMuchCoffeeException ) serv -> task {
+    serv.StatusCode <- 500
+    return serv.EndResponse $"{e.Message}"
+}
+```
 ## Changelog

@@ -32,6 +32,38 @@ type EndpointSetup = IEndpointRouteBuilder -> IEndpointRouteBuilder
 
 type TemplateConfiguration = SystemDefaults -> string -> IServiceProvider -> ITemplateRenderer
 
+type ExceptionSetup ( _defaultConfig: SystemDefaults ) =
+    member val ShowInputExceptionsByDefault = true with get, set
+    member val ShowServerExceptionsByDefault = false with get, set
+    member val ShowUserExceptionsByDefault = true with get, set
+    
+    // Environment Name -> true - show / false - hide
+    member val InputExceptionFilter: Map<string, bool> = Map [] with get, set
+    member val ServerExceptionFilter: Map<string, bool> =
+        Map [
+            Environments.Development, true
+        ] with get, set
+        
+    member val UserExceptionFilter: Map<string, bool> = Map [] with get, set
+        
+    member internal this.ShowFullInputExceptionFor ( envName: string ) =
+        this.InputExceptionFilter
+        |> Map.tryFind envName
+        |> Option.defaultValue this.ShowInputExceptionsByDefault
+    member internal this.ShowFullServerExceptionFor ( envName: string ) =
+        this.ServerExceptionFilter
+        |> Map.tryFind envName
+        |> Option.defaultValue this.ShowServerExceptionsByDefault
+    member internal this.ShowFullUserExceptionFor ( envName: string ) =
+        this.UserExceptionFilter
+        |> Map.tryFind envName
+        |> Option.defaultValue this.ShowUserExceptionsByDefault
+        
+    member internal this.ConfigureServices: ServiceSetup = fun env _ services ->
+        services.AddSingleton<IUserExceptionFilter> {
+            new IUserExceptionFilter with
+                member _.ShowUserException = this.ShowFullUserExceptionFor env.EnvironmentName
+        }
 
 type GlobalizationSetup ( _defaultConfig: SystemDefaults ) =
     let mutable cultures = set [ CultureInfo.CurrentCulture.Name ]
@@ -174,6 +206,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     let templatingSetup = TemplatingSetup defaultConfig
     let jsonSetup = JsonSetup defaultConfig
     let globalizationSetup = GlobalizationSetup defaultConfig
+    let exceptionSetup = ExceptionSetup defaultConfig
     
     let mutable routes = Routes ()
     let mutable contentRoot = ""
@@ -234,12 +267,17 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                     with
                     // Catching unhandled exceptions with default handlers
                     | :? InputException as exn ->
-                        let t = exn.GetType ()
+                        let message =
+                            if exceptionSetup.ShowFullInputExceptionFor env.EnvironmentName then
+                                let t = exn.GetType ()
+                                $"{t.Name}: {exn.Message}"
+                            else
+                                "Input Validation Error"
                         context.Response.StatusCode <- 400
-                        return! context.Response.WriteAsync $"{t.Name}: {exn.Message}"
+                        return! context.Response.WriteAsync message
                     | :? ServerException as exn ->
                         let message =
-                            if env.IsDevelopment () then
+                            if exceptionSetup.ShowFullServerExceptionFor env.EnvironmentName then
                                 let t = exn.GetType ()
                                 $"{t.Name}: {exn.Message}"
                             else
@@ -340,6 +378,7 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
             ( env, config, serv ) |||> staticFilesSetup.ConfigureServices |> ignore
             ( env, config, serv ) |||> jsonSetup.Deserialization.ConfigureServices |> ignore
             ( env, config, serv ) |||> globalizationSetup.ConfigureServices |> ignore
+            ( env, config, serv ) |||> exceptionSetup.ConfigureServices |> ignore
             
             // Slot for custom services
             ( env, config, serv ) |||> getServiceSetup afterServiceSetup |> ignore
@@ -439,4 +478,5 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
     member val Templating = templatingSetup
     member val Json = jsonSetup
     member val Globalization = globalizationSetup
+    member val Exceptions = exceptionSetup
     member _.ContentRoot with set value = contentRoot <- value

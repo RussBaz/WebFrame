@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RussBaz.WebFrame" Version="0.0.16" />
+    <PackageReference Include="RussBaz.WebFrame" Version="0.0.17" />
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
 
   <ItemGroup>

@@ -46,6 +46,9 @@ module SystemDefaults =
 type IGlobalizationConfig =
     abstract DefaultCulture: CultureInfo with get
     abstract AllowedCultures: CultureInfo list with get
+    
+type IUserExceptionFilter =
+    abstract ShowUserException: bool
 
 type ConfigOverrides ( _defaultConfig: SystemDefaults ) =
     let config = Dictionary<string, string> ()

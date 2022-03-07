@@ -229,8 +229,14 @@ module Error =
         
     let codeFor<'T when 'T :> exn> ( code: int ) : TaskErrorHandler =
         fun ( e: 'T ) ( serv: RequestServices ) -> task {
-            let t = e.GetType ()
+            let exFilter = serv.Services.Required<IUserExceptionFilter> ()
+            let message =
+                if exFilter.ShowUserException then
+                    let t = e.GetType ()
+                    $"{t.Name}: {e.Message}"
+                else
+                    "Workflow Error"
             serv.StatusCode <- code
-            return serv.EndResponse $"Reason: {t.Name}"
+            return serv.EndResponse message
         }
         |> onTask
