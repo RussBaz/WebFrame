@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="RussBaz.WebFrame" Version="0.0.18" />
+    <PackageReference Include="RussBaz.WebFrame" Version="0.0.19" />
   </ItemGroup>
 
 </Project>

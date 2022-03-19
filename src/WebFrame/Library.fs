@@ -37,12 +37,10 @@ type AppModule ( prefix: string ) =
         if routes.ContainsKey route then
             raise ( DuplicateRouteException ( route.ToString () ) )
             
-        let h: TaskHttpHandler = fun config ctx ->
-            ( ctx, config )
-            |> RequestServices
-            |> handler
-        
-        let routeDef = RouteDef.createWithHandler route h
+        let routeDef =
+            handler
+            |> TaskServicedHandler.toTaskHttpHandler
+            |> RouteDef.createWithHandler route
 
         routes.[ route ] <- routeDef
         
@@ -71,48 +69,88 @@ type AppModule ( prefix: string ) =
     let getLocalRoutes () = routes |> Seq.map ( fun i -> i.Value )
     let getInnerRoutes () = modules |> Seq.collect collectModuleRoutes
     let preprocessRoutes ( r: RouteDef seq ) = r |> Seq.map preprocessRoute
-    
-    member _.Item
-        with set ( index: RoutePattern ) ( value: TaskServicedHandler ) = value |> addRoute index
-        and get ( index: RoutePattern ) = routes.[ index ]
         
     member this.Connect
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Connect index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ CONNECT ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Delete
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Delete index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ DELETE ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Get
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Get index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ GET ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Head
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Head index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ HEAD ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Options
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Options index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ OPTIONS ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Patch
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Patch index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ PATCH ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Post
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Post index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ POST ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Put
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Put index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ PUT ]
+            value
+            |> asTask
+            |> addRoute pattern
     member this.Trace
-        with set ( index: string ) ( value: ServicedHandler ) = this.[ Trace index ] <- value |> asTask
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index [ TRACE ]
+            value
+            |> asTask
+            |> addRoute pattern
+    member this.Any
+        with set ( index: string ) ( value: ServicedHandler ) =
+            let pattern = RoutePattern.create index HttpMethod.Any
+            value
+            |> asTask
+            |> addRoute pattern
         
     member this.ConnectTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Connect index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ CONNECT ] )
     member this.DeleteTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Delete index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ DELETE ] )
     member this.GetTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Get index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ GET ] )
     member this.HeadTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Head index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ HEAD ] )
     member this.OptionsTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Options index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ OPTIONS ] )
     member this.PatchTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Patch index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ PATCH ] )
     member this.PostTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Post index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ POST ] )
     member this.PutTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Put index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ PUT ] )
     member this.TraceTask
-        with set ( index: string ) ( value: TaskServicedHandler ) = this.[ Trace index ] <- value
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index [ TRACE ] )
+    member this.AnyTask
+        with set ( index: string ) ( value: TaskServicedHandler ) = value |> addRoute ( RoutePattern.create index HttpMethod.Any )
         
     member _.Module
         with set ( name: string ) ( value: AppModule ) = value |> addModule name
@@ -134,6 +172,11 @@ type AppModule ( prefix: string ) =
         
         result
     member this.Errors with set h = h |> errorHandlers.Add
+    member this.Route with set ( r: RouteDef ) =
+        if routes.ContainsKey r.Pattern then
+            raise ( DuplicateRouteException ( r.Pattern.ToString () ) )
+        
+        routes.[ r.Pattern ] <- r
 
 type App ( defaultConfig: SystemDefaults ) as app =
     inherit AppModule ""

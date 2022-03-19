@@ -355,26 +355,6 @@ open WebFrame.Http
 
 app.Get "/home" <- fun _ -> TextResponse "Hello World"
 app.PostTask "/home" <- fun _ -> task { return TextResponse "Hello World" }
-
-// Moreover, you do not have to use convinience indexed properties named after their methods
-// You can provide a method directly
-// You must provide a TaskServicedHandler in this case
-open WebFrame.RouteTypes
-
-app.[ Post "/api" ] <- fun serv -> task { return serv.EndResponse () }
-
-// Or even like this
-open WebFrame.Http
-
-app.[ Get "/" ] <- fun _ -> task { return EndResponse }
-
-// Each method named indexed property will internally use this property
-// Therefore, if the method and the endpoint combination repeats,
-// It will immediately raise a ServerException
-// However, in some corner cases the duplication may slip through the checks
-// In that case the ASP.Net Core will raise its own exception
-// and there is no guarantee on what exception and when it will be raised
-// It depends on the whims of ASP.Net Core developers
 ```
 If an `InputException` is raised during the request handling then a `400` response with the exception message would returned. In case of `ServerException`, a `500` response is issued instead.
 ### Request Services

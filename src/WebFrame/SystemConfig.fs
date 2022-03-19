@@ -288,63 +288,81 @@ type SystemSetup ( defaultConfig: SystemDefaults ) =
                 
             RequestDelegate handle
 
-        let createEndpoint () =
-            let handler = route.HttpHandler |> prepareDelegate route.ErrorHandlers
-            match route.Pattern with
-            | Connect p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Connect ], handler )
-            | Delete p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Delete ], handler )
-            | Get p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Get ], handler )
-            | Head p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Head ], handler )
-            | Options p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Options ], handler )
-            | Patch p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Patch ], handler )
-            | Post p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Post ], handler )
-            | Put p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Put ], handler )
-            | Trace p ->
-                endpoints.MapMethods ( p, [ HttpMethods.Trace ], handler )
+        let createEndpoint r =
+            let handler = r.HttpHandler |> prepareDelegate r.ErrorHandlers
+            let p = r.Pattern.Path
+            r.Pattern.Methods
+            |> List.ofSeq
+            |> List.sort
+            |> List.map ( function
+                | CONNECT ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Connect ], handler )
+                | DELETE ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Delete ], handler )
+                | GET ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Get ], handler )
+                | HEAD ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Head ], handler )
+                | OPTIONS ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Options ], handler )
+                | PATCH ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Patch ], handler )
+                | POST ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Post ], handler )
+                | PUT ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Put ], handler )
+                | TRACE ->
+                    endpoints.MapMethods ( p, [ HttpMethods.Trace ], handler )
+            )
                 
-        let setupAuth ( endpoint: IEndpointConventionBuilder ) =
-            match route.Auth with
-            | NoneAuth -> endpoint
-            | AnonAuth -> endpoint.AllowAnonymous ()
-            | DefaultAuth -> endpoint.RequireAuthorization ()
-            | PolicyAuth p -> p |> Array.ofList |> endpoint.RequireAuthorization
-            | DataAuth d -> d |> Array.ofList |> endpoint.RequireAuthorization
+        let setupAuth ( endpoints: IEndpointConventionBuilder list ) =
+            endpoints
+            |> List.map (
+                fun e ->
+                    match route.Auth with
+                    | NoneAuth -> e
+                    | AnonAuth -> e.AllowAnonymous ()
+                    | DefaultAuth -> e.RequireAuthorization ()
+                    | PolicyAuth p -> p |> Array.ofList |> e.RequireAuthorization
+                    | DataAuth d -> d |> Array.ofList |> e.RequireAuthorization
+            )
             
-        let setupCORS ( endpoint: IEndpointConventionBuilder ) =
-            match route.CORS with
-            | NoneCORS -> endpoint
-            | PolicyCORS p -> endpoint.RequireCors p
-            | NewPolicyCORS b -> endpoint.RequireCors b
+        let setupCORS ( endpoints: IEndpointConventionBuilder list ) =
+            endpoints
+            |> List.map (
+                fun e ->
+                    match route.CORS with
+                    | NoneCORS -> e
+                    | PolicyCORS p -> e.RequireCors p
+                    | NewPolicyCORS b -> e.RequireCors b
+            )
             
-        let setupHosts ( endpoint: IEndpointConventionBuilder ) =
-            match route.Host with
-            | [] -> endpoint
-            | h -> endpoint.RequireHost ( h |> Array.ofList )
+        let setupHosts ( endpoints: IEndpointConventionBuilder list ) =
+            endpoints
+            |> List.map (
+                fun e ->
+                    match route.Host with
+                    | [] -> e
+                    | h -> e.RequireHost ( h |> Array.ofList )
+            )
             
-        let setupMetadata ( endpoint: IEndpointConventionBuilder ) =
+        let setupMetadata ( endpoints: IEndpointConventionBuilder list ) =
             let descriptor = RouteDescription route :> Object
             let metadata = descriptor :: route.Metadata |> Array.ofList
-            endpoint.WithMetadata metadata
+            
+            endpoints |> List.map ( fun e -> e.WithMetadata metadata )
         
         let setup =
             createEndpoint
-            >> route.PreConfig
+            >> List.map route.PreConfig
             >> setupAuth
             >> setupCORS
             >> setupHosts
             >> setupMetadata
-            >> route.PostConfig
+            >> List.map route.PostConfig
             >> ignore
         
-        setup ()
+        setup route
         
         endpoints
     let getServiceSetup ( data: List<ServiceSetup> ) : ServiceSetup =

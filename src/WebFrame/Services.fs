@@ -78,3 +78,7 @@ type ServicedTaskErrorHandler<'T when 'T :> exn> = 'T -> RequestServices -> Task
 
 type ErrorHandlerSetup<'T when 'T :> exn> = ServicedErrorHandler<'T> -> ErrorHandler
 type TaskErrorHandlerSetup<'T when 'T :> exn> = ServicedTaskErrorHandler<'T> -> TaskErrorHandler
+
+module TaskServicedHandler =
+    let toTaskHttpHandler: TaskHandlerSetup = fun s ->
+        fun config ctx -> ( ctx, config ) |> RequestServices |> s

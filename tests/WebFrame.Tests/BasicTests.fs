@@ -15,6 +15,7 @@ open WebFrame
 open WebFrame.Exceptions
 open WebFrame.Http
 open WebFrame.RouteTypes
+open WebFrame.Services
 open type Endpoints.Helpers
 
 open Helpers
@@ -64,15 +65,11 @@ app.Services.Globalization.AllowedCultures <- [
 
 app.Config.[ "hello" ] <- "World"
 
-app.[ Get "/" ] <- fun _ -> task { return TextResponse "Hello World!" }
-app.[ Get "/data" ] <- alwaysTask ( TextResponse "Data" )
-app.[ Post "/data" ] <- fun serv -> task {
+app.GetTask "/" <- fun _ -> task { return TextResponse "Hello World!" }
+app.GetTask "/data" <- alwaysTask ( TextResponse "Data" )
+app.Post "/data" <- fun serv ->
     let q = serv.Query.Get "q" ""
-    return JsonResponse
-        {|
-            Q = q
-        |}
-}
+    JsonResponse {| Q = q |}
 
 app.PostTask "/guid" <- fun serv -> task {
     let! testField = serv.Body.Json.Optional<Guid option> "id"
@@ -529,4 +526,37 @@ let ``Checking exception filter`` () = task {
 
     r.StatusCode |> int |> shouldEqual 500
     content |> shouldEqual "Server Error"
+}
+
+[<Test>]
+let ``Test Direct Route Definition`` () = task {
+    let expected = "another-bonus"
+    let app = App ()
+    
+    let h =
+        TaskServicedHandler.toTaskHttpHandler
+        <| fun serv -> task {
+            return serv.EndResponse expected
+        }
+    
+    let r =
+        [ GET; POST ]
+        |> RoutePattern.create "/bonus"
+        |> RouteDef.create
+        |> RouteDef.name "Bonus"
+        |> RouteDef.handler h
+        
+    app.Route <- r
+    
+    use! server = app.TestServer ()
+    use client = server.GetTestClient ()
+    
+    let! r = client.GetAsync "/bonus"
+    let! content = r.Content.ReadAsStringAsync ()
+    
+    r.StatusCode |> shouldEqual HttpStatusCode.OK
+    let ct = r.Content.Headers.ContentType.ToString ()
+    
+    ct |> shouldEqual "text/plain"
+    content |> shouldEqual expected
 }
