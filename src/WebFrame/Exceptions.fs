@@ -4,6 +4,7 @@ open System
 
 // Base exception classes
 type InputException ( msg: string ) = inherit Exception ( msg )
+type AuthException ( msg: string ) = inherit Exception ( msg )
 type ServerException ( msg: string ) = inherit Exception ( msg )
 
 // Exceptions raised in response to incorrect user input
@@ -35,10 +36,19 @@ type MissingRequiredJsonFieldException ( fieldName: string ) =
 type MissingRequiredJsonException () =
     inherit InputException $"Could not retrieve an expected json body from the request."
 
-// Exceptions raised in response to incorrect app setup
-// Should result in app breaking on startup
+// Unspecified input validation exception
+type GenericInputException ( msg: string ) = inherit InputException ( msg )
+
+type NotAuthneticatedException () = inherit AuthException $"The user was not authenticated"
+
+// Exceptions raised in response to an incorrect app setup
+// Generally, should result in an app breaking on startup
+// However, it is not always possible
 type MissingRequiredDependencyException ( dependencyName: string ) =
     inherit ServerException $"Could not retrieve an object of type '%s{dependencyName}' from ASP.NET Core's dependency container."
+    
+type MissingAuthenticationException () =
+    inherit ServerException "Could not find authentication methods"
     
 type MissingRequiredConfigException ( configName: string ) =
     inherit ServerException $"Could not read a property named '%s{configName}' from ASP.NET Core's configuration container."
@@ -54,3 +64,6 @@ type HostNotReadyException () =
     
 type MissingTemplateException ( path: string ) =
     inherit ServerException $"The template at \"{path}\" was not found."
+
+/// Unspecified server setup exception
+type GenericServerException ( msg: string ) = inherit ServerException ( msg )
